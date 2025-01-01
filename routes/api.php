@@ -7,20 +7,35 @@ use App\Http\Controllers\API\UserController;
 
 // Public Routes
 Route::post('/login', [AuthController::class, 'login']);
+// Route::post('/create-user', [UserController::class, 'store']);
+
 
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/me', [AuthController::class, 'me']);
 
-    Route::apiResource('users', UserController::class);
 
     // Admin Routes
-    Route::middleware('role:admin')->group(function () {
+    Route::group(['middleware' => ['role:admin']], function () {
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::controller(UserController::class)->group(function () {
+            Route::get('/users', 'index');
+            Route::post('/users', 'store');
+            Route::get('/users/{user}', 'show');
+            Route::put('/users/{user}', 'update');
+            Route::delete('/users/{user}', 'destroy');
+            Route::post('/create-user', 'store');
+        });
+    });
 
 
-        Route::post('/create-user', [UserController::class, 'store']);
+    // cashier Routes
+    Route::group(['middleware' => ['role:cashier']], function () {
 
+        Route::controller(UserController::class)->group(function () {
+
+
+        });
     });
 
 });

@@ -27,9 +27,13 @@ class AuthController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'user' => $user,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
             'token' => $user->createToken('auth_token')->plainTextToken,
-            'roles' => $user->roles->pluck('name')
+            'roles' => $user->roles()->pluck('name')
         ]);
     }
 
@@ -51,5 +55,32 @@ class AuthController extends Controller
         ]);
     }
 
-    
+    //1st admin register action
+
+    public function adminRegister(Request $request)
+    {
+        $request->validate([
+            'name' => 'required',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|confirmed'
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password)
+        ]);
+
+        $user->assignRole('admin');
+
+        return response()->json([
+            'status' => 'success',
+            'user' => $user,
+            'token' => $user->createToken('auth_token')->plainTextToken,
+            'roles' => $user->roles->pluck('name')
+        ]);
+    }
+
+
+
 }
