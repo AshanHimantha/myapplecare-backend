@@ -9,6 +9,17 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
+
+    public function index()
+    {
+        $products = Product::with(['deviceCategory', 'deviceSubcategory'])->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $products
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -24,7 +35,7 @@ class ProductController extends Controller
             $image = $request->file('image');
             $filename = time() . '.' . $image->getClientOriginalExtension();
             $path = $image->storeAs('products', $filename, 'public');
-            $validated['image'] = $path;
+            $validated['image'] = url('/storage/products/' . $filename);
         }
 
         $product = Product::create($validated);
@@ -42,7 +53,6 @@ class ProductController extends Controller
             'device_subcategory_id' => 'sometimes|exists:device_subcategories,id',
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
-            'color' => 'nullable|string',
             'status' => 'sometimes|in:active,inactive',
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
         ]);
@@ -56,7 +66,7 @@ class ProductController extends Controller
             $image = $request->file('image');
             $filename = time() . '.' . $image->getClientOriginalExtension();
             $path = $image->storeAs('products', $filename, 'public');
-            $validated['image'] = $path;
+            $validated['image'] = url('/storage/products/' . $filename);
         }
 
         $product->update($validated);
@@ -66,4 +76,26 @@ class ProductController extends Controller
             'data' => $product->fresh(['deviceCategory', 'deviceSubcategory'])
         ]);
     }
+
+    // search product from id
+    public function search($id)
+    {
+        $product = Product::with(['deviceCategory', 'deviceSubcategory'])->find($id);
+
+        if (!$product) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Product not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $product
+        ]);
+    }
+
+
+
+
 }
