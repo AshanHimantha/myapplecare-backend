@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\CartController;
 use App\Http\Controllers\API\CategoryController;
 use App\Http\Controllers\API\ProductController;
 use App\Http\Controllers\API\StockController;
@@ -16,9 +17,7 @@ Route::get('/categories/{category}', [CategoryController::class, 'show']);
 Route::get('/me', [AuthController::class, 'me']);
 
 
-Route::group(['middleware' => ['role:admin']], function () {
-    Route::apiResource('stocks', StockController::class);
-});
+
 
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -32,6 +31,14 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->file($path);
     });
 
+    Route::get('/cart', [CartController::class, 'index']);
+    Route::post('/cart/add', [CartController::class, 'addItem']);
+    Route::put('/cart/items/{item}', [CartController::class, 'updateItem']);
+    Route::delete('/cart/items/{item}', [CartController::class, 'removeItem']);
+    Route::post('/cart/checkout', [CartController::class, 'checkout']);
+    Route::delete('/cart/{cart}', [CartController::class, 'destroy']);
+    Route::post('/cart/create', [CartController::class, 'create']);
+    Route::get('/cart/{id}', [CartController::class, 'show']);
 
     Route::get('/searchProduct', [ProductController::class, 'index']);
     Route::get('/products/search/{id}', [ProductController::class, 'search']);
@@ -62,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/deleteProduct/{product}', [ProductController::class, 'destroy']);
         Route::post('/device-categories', [CategoryController::class, 'storeDeviceCategory']);
         Route::post('/device-subcategories', [CategoryController::class, 'storeDeviceSubCategory']);
+        Route::apiResource('stocks', StockController::class);
     });
 
 
