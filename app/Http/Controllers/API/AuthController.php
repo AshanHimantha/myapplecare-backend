@@ -25,6 +25,12 @@ class AuthController extends Controller
             ]);
         }
 
+        // Delete old tokens
+        $user->tokens()->delete();
+
+        // Create new token
+        $token = $user->createToken('auth_token')->plainTextToken;
+
         return response()->json([
             'status' => 'success',
             'user' => [
@@ -32,7 +38,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
             ],
-            'token' => $user->createToken('auth_token')->plainTextToken,
+            'token' => $token,
             'roles' => $user->roles()->pluck('name')
         ]);
     }
@@ -46,12 +52,27 @@ class AuthController extends Controller
         ]);
     }
 
-    public function me(Request $request)
+       public function me(Request $request)
     {
+        if (!$request->bearerToken()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No bearer token provided'
+            ], 401);
+        }
+
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid token'
+            ], 401);
+        }
+
         return response()->json([
             'status' => 'success',
-            'user' => $request->user(),
-            'roles' => $request->user()->roles->pluck('name')
+            'user' => $user,
+            'roles' => $user->roles->pluck('name')
         ]);
     }
 

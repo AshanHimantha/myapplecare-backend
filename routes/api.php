@@ -11,7 +11,7 @@ use App\Http\Controllers\API\UserController;
 
 // Public Routes
 Route::post('/login', [AuthController::class, 'login']);
-Route::put('/products/{product}', [ProductController::class, 'update']);
+
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{category}', [CategoryController::class, 'show']);
 Route::get('/me', [AuthController::class, 'me']);
@@ -22,6 +22,9 @@ Route::get('/me', [AuthController::class, 'me']);
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
 
+
+
+    Route::put('/products/{product}', [ProductController::class, 'update']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/product-images/{filename}', function ($filename) {
         $path = storage_path('app/public/products/' . $filename);
@@ -53,7 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Admin Routes
     Route::group(['middleware' => ['role:admin']], function () {
-        Route::get('/me', [AuthController::class, 'me']);
+
         Route::controller(UserController::class)->group(function () {
             Route::get('/users', 'index');
             Route::post('/users', 'store');
@@ -73,8 +76,12 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
 
+
+
     // cashier Routes
     Route::group(['middleware' => ['role:cashier']], function () {
-        Route::controller(UserController::class)->group(function () {});
+        Route::apiResource('stocks', StockController::class);
     });
+
+
 });

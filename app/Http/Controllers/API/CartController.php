@@ -33,10 +33,13 @@ class CartController extends Controller
 
         $validated = $request->validate([
             'stock_id' => 'required|exists:stocks,id',
-            'quantity' => 'required|integer|min:1'
+            'quantity' => 'required|integer|min:1',
+            'price' => 'sometimes|numeric|min:0'
         ]);
 
         $stock = Stock::findOrFail($validated['stock_id']);
+        $maxDiscount = $stock->selling_price - $stock->cost_price;
+        $minAllowedPrice = $stock->selling_price - $maxDiscount;
 
         if ($stock->quantity < $validated['quantity']) {
             return response()->json([
@@ -45,12 +48,17 @@ class CartController extends Controller
             ], 400);
         }
 
-        $cart = Cart::firstOrCreate(
-            [
-                'user_id' => $user->id,
-                'status' => 'active'
-            ]
-        );
+        if (isset($validated['price']) && $validated['price'] < $minAllowedPrice) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Maximum discount allowed is {$maxDiscount}. Price cannot be lower than {$minAllowedPrice}"
+            ], 400);
+        }
+
+        $cart = Cart::firstOrCreate([
+            'user_id' => $user->id,
+            'status' => 'active'
+        ]);
 
         $cartItem = CartItem::updateOrCreate(
             [
@@ -59,7 +67,7 @@ class CartController extends Controller
             ],
             [
                 'quantity' => $validated['quantity'],
-                'price' => $stock->selling_price
+                'price' => $validated['price'] ?? $stock->selling_price
             ]
         );
 
@@ -74,14 +82,31 @@ class CartController extends Controller
     public function updateItem(Request $request, CartItem $item)
     {
         $validated = $request->validate([
-            'quantity' => 'required|integer|min:1'
+            'quantity' => 'sometimes|integer|min:1',
+            'price' => 'sometimes|numeric|min:0'  // price field will store discount amount
         ]);
 
-        if ($item->stock->quantity < $validated['quantity']) {
+        $stock = $item->stock;
+        $maxAllowedDiscount = $stock->selling_price - $stock->cost_price;
+
+        if (isset($validated['quantity']) && $stock->quantity < $validated['quantity']) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Insufficient stock'
             ], 400);
+        }
+
+        // Validate entered discount amount
+        if (isset($validated['price'])) {
+            $enteredDiscount = $validated['price'];
+            if ($enteredDiscount > $maxAllowedDiscount) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "Maximum discount allowed is {$maxAllowedDiscount}"
+                ], 400);
+            }
+            // Store discount amount in price field
+            $validated['price'] = $enteredDiscount;
         }
 
         $item->update($validated);
