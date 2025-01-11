@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
             $table->enum('condition', ['new', 'used'])->default('new');
-            $table->string('serial_number')->unique()->nullable();
+            $table->string('serial_number')->nullable();
             $table->integer('quantity');
             $table->decimal('selling_price', 10, 2);
             $table->decimal('cost_price', 10, 2);

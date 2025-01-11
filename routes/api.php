@@ -23,7 +23,7 @@ Route::get('/me', [AuthController::class, 'me']);
 Route::middleware('auth:sanctum')->group(function () {
 
 
-
+    Route::get('stocks/available', [StockController::class, 'available']);
     Route::put('/products/{product}', [ProductController::class, 'update']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/product-images/{filename}', function ($filename) {
@@ -80,7 +80,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // cashier Routes
     Route::group(['middleware' => ['role:cashier']], function () {
-        Route::apiResource('stocks', StockController::class);
+
+        Route::post('/cart/checkout', [CartController::class, 'checkout']);
+
     });
 
 

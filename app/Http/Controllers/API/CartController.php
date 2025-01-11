@@ -5,6 +5,8 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\Stock;
 use Illuminate\Http\Request;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -32,14 +34,13 @@ class CartController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
+            'cart_id' => 'sometimes|exists:carts,id',
             'stock_id' => 'required|exists:stocks,id',
             'quantity' => 'required|integer|min:1',
             'price' => 'sometimes|numeric|min:0'
         ]);
 
         $stock = Stock::findOrFail($validated['stock_id']);
-        $maxDiscount = $stock->selling_price - $stock->cost_price;
-        $minAllowedPrice = $stock->selling_price - $maxDiscount;
 
         if ($stock->quantity < $validated['quantity']) {
             return response()->json([
@@ -48,17 +49,19 @@ class CartController extends Controller
             ], 400);
         }
 
-        if (isset($validated['price']) && $validated['price'] < $minAllowedPrice) {
-            return response()->json([
-                'status' => 'error',
-                'message' => "Maximum discount allowed is {$maxDiscount}. Price cannot be lower than {$minAllowedPrice}"
-            ], 400);
-        }
 
-        $cart = Cart::firstOrCreate([
-            'user_id' => $user->id,
-            'status' => 'active'
-        ]);
+
+        // Get or create cart based on cart_id if provided
+        $cart = isset($validated['cart_id'])
+            ? Cart::where('id', $validated['cart_id'])
+                ->where('user_id', $user->id)
+                ->firstOrFail()
+            : Cart::firstOrCreate([
+                'user_id' => $user->id,
+                'status' => 'active'
+            ]);
+
+        $price = $validated['price'] ?? $stock->selling_price;
 
         $cartItem = CartItem::updateOrCreate(
             [
@@ -67,7 +70,7 @@ class CartController extends Controller
             ],
             [
                 'quantity' => $validated['quantity'],
-                'price' => $validated['price'] ?? $stock->selling_price
+                'price' => $price
             ]
         );
 
@@ -75,7 +78,10 @@ class CartController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $cart->load('items.stock.product')
+            'data' => [
+                'cart_item' => $cartItem,
+                'cart' => $cart->fresh()
+            ]
         ]);
     }
 
@@ -130,11 +136,20 @@ class CartController extends Controller
         ]);
     }
 
-    public function checkout()
+    public function checkout(Request $request)
     {
-        $user = request()->user();
+        $request->validate([
+            'cart_id' => 'required|exists:carts,id',
+            'first_name' => 'required|string',
+            'last_name' => 'required|string',
+            'contact_number' => 'required|string',
+            'payment_method' => 'required|in:cash,card',
+            'total_amount' => 'required|numeric|min:0'
+        ]);
 
-        $cart = Cart::where('user_id', $user->id)
+        // Load cart with relationships
+        $cart = Cart::with('items.stock.product')
+            ->where('id', $request->cart_id)
             ->where('status', 'active')
             ->first();
 
@@ -145,21 +160,50 @@ class CartController extends Controller
             ], 404);
         }
 
-        // Update stock quantities
+        // Store cart data before deletion
+        $cartData = $cart->toArray();
+
+        // Create Invoice
+        $invoice = Invoice::create([
+            'user_id' => $cart->user_id,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'contact_number' => $request->contact_number,
+            'payment_method' => $request->payment_method,
+            'total_amount' => $request->total_amount
+        ]);
+
+        // Create Invoice Items
         foreach ($cart->items as $item) {
+            InvoiceItem::create([
+                'invoice_id' => $invoice->id,
+                'product_id' => $item->stock->product_id,
+                'sold_price' => $item->stock->selling_price,
+                'cost_price' => $item->stock->cost_price,
+                'discount' => $item->price,
+                'quantity' => $item->quantity
+            ]);
+
             $stock = $item->stock;
             $stock->quantity -= $item->quantity;
             $stock->save();
         }
 
+        // Mark cart as completed and delete
         $cart->update(['status' => 'completed']);
+        $cart->items()->delete();
+        $cart->delete();
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Cart checkout successful',
-            'data' => $cart->load('items.stock.product')
+            'message' => 'Checkout successful',
+            'data' => [
+                'cart' => $cartData,
+                'invoice' => $invoice->load('items')
+            ]
         ]);
     }
+
 
     private function updateCartTotal(Cart $cart)
     {

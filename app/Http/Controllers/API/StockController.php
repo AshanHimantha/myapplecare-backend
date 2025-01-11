@@ -18,6 +18,20 @@ class StockController extends Controller
         ]);
     }
 
+
+    public function available()
+{
+    $stocks = Stock::with('product')
+        ->where('quantity', '>', 0)
+        ->get();
+
+    return response()->json([
+        'status' => 'success',
+        'data' => $stocks
+    ]);
+}
+
+
     public function store(Request $request)
     {
         $validated = $request->validate([
