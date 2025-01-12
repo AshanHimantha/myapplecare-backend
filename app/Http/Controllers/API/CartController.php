@@ -181,7 +181,8 @@ class CartController extends Controller
                 'sold_price' => $item->stock->selling_price,
                 'cost_price' => $item->stock->cost_price,
                 'discount' => $item->price,
-                'quantity' => $item->quantity
+                'quantity' => $item->quantity,
+                'serial_number'=> $item->stock->serial_number
             ]);
 
             $stock = $item->stock;

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\CartController;
 use App\Http\Controllers\API\CategoryController;
+use App\Http\Controllers\API\InvoiceController;
 use App\Http\Controllers\API\ProductController;
 use App\Http\Controllers\API\StockController;
 use App\Http\Controllers\API\UserController;
@@ -15,7 +16,9 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{category}', [CategoryController::class, 'show']);
 Route::get('/me', [AuthController::class, 'me']);
-
+Route::get('invoices', [InvoiceController::class, 'index']);
+Route::get('invoices/{id}', [InvoiceController::class, 'show']);
+Route::get('invoices/daily', [InvoiceController::class, 'daily']);
 
 
 
@@ -64,7 +67,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/users/{user}', 'update');
             Route::delete('/users/{user}', 'destroy');
             Route::post('/create-user', 'store');
-
         });
 
         Route::post('/addProduct', [ProductController::class, 'store']);
@@ -82,8 +84,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::group(['middleware' => ['role:cashier']], function () {
 
         Route::post('/cart/checkout', [CartController::class, 'checkout']);
-
     });
-
-
 });
