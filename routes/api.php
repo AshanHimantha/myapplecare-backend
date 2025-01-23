@@ -6,8 +6,10 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\CartController;
 use App\Http\Controllers\API\CategoryController;
 use App\Http\Controllers\API\InvoiceController;
+use App\Http\Controllers\API\PartController;
 use App\Http\Controllers\API\ProductController;
 use App\Http\Controllers\API\StockController;
+use App\Http\Controllers\API\TicketController;
 use App\Http\Controllers\API\UserController;
 
 // Public Routes
@@ -19,8 +21,13 @@ Route::get('/me', [AuthController::class, 'me']);
 Route::get('invoices', [InvoiceController::class, 'index']);
 Route::get('invoices/{id}', [InvoiceController::class, 'show']);
 Route::get('invoices/daily', [InvoiceController::class, 'daily']);
-
-
+Route::get('/part-images/{filename}', function ($filename) {
+    $path = storage_path('app/public/parts/' . $filename);
+    if (!file_exists($path)) {
+        return response()->json(['message' => 'Image not found'], 404);
+    }
+    return response()->file($path);
+});
 
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -36,6 +43,10 @@ Route::middleware('auth:sanctum')->group(function () {
         }
         return response()->file($path);
     });
+
+
+
+
 
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart/add', [CartController::class, 'addItem']);
@@ -84,5 +95,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::group(['middleware' => ['role:cashier']], function () {
 
         Route::post('/cart/checkout', [CartController::class, 'checkout']);
+
     });
+
+
+    Route::group(['middleware' => ['role:technician']], function () {
+
+        Route::apiResource('tickets', TicketController::class);
+        Route::get('tickets-filter', [TicketController::class, 'filter']);
+        Route::apiResource('parts', PartController::class);
+        Route::get('tickets-search', [TicketController::class, 'search']);
+        Route::get('parts-search', [PartController::class, 'search']);
+
+
+    });
+
+
+
 });
