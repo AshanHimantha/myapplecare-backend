@@ -17,7 +17,8 @@ class Ticket extends Model
         'device_model',
         'imei',
         'issue',
-        'status'
+        'status',
+        'service_charge'
     ];
 
     protected $casts = [

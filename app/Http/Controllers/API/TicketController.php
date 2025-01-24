@@ -61,21 +61,23 @@ class TicketController extends Controller
         ]);
     }
 
-    public function update(Request $request, $id)
+     public function update(Request $request, $id)
     {
         $ticket = Ticket::findOrFail($id);
 
         $request->validate([
-            'status' => 'required|in:open,ongoing,completed'
+            'status' => 'required|in:open,in_progress,completed',
+            'service_charge' => 'numeric|min:0'
         ]);
 
         $ticket->update([
-            'status' => $request->status
+            'status' => $request->status,
+            'service_charge' => $request->service_charge
         ]);
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Ticket status updated',
+            'message' => 'Ticket updated successfully',
             'data' => $ticket->fresh()->load('user')
         ]);
     }
