@@ -28,8 +28,10 @@ class TicketController extends Controller
             'device_category' => 'required|in:iphone,android,other',
             'device_model' => 'required|string',
             'imei' => 'nullable|string',
-            'issue' => 'required|string'
+            'issue' => 'required|string',
+            'service_charge' => 'nullable|numeric|min:0'
         ]);
+
         $ticket = Ticket::create([
             'user_id' => Auth::user()->id,
             'first_name' => $request->first_name,
@@ -39,7 +41,8 @@ class TicketController extends Controller
             'device_category' => strtolower($request->device_category),
             'device_model' => $request->device_model,
             'imei' => $request->imei,
-            'issue' => $request->issue
+            'issue' => $request->issue,
+            'service_charge' => $request->service_charge ?? 0
         ]);
 
         return response()->json([
@@ -94,6 +97,7 @@ class TicketController extends Controller
             'device_category',
             'priority',
             'status',
+            'service_charge',
             'created_at'
         ])
         ->orderBy('created_at', 'desc');
@@ -133,6 +137,7 @@ public function search(Request $request)
             'device_category',
             'priority',
             'status',
+            'service_charge',
             'created_at'
         ]);
 

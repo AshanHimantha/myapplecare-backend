@@ -8,8 +8,10 @@ use App\Http\Controllers\API\CategoryController;
 use App\Http\Controllers\API\InvoiceController;
 use App\Http\Controllers\API\PartController;
 use App\Http\Controllers\API\ProductController;
+use App\Http\Controllers\API\RepairController;
 use App\Http\Controllers\API\StockController;
 use App\Http\Controllers\API\TicketController;
+use App\Http\Controllers\API\TicketItemController;
 use App\Http\Controllers\API\UserController;
 
 // Public Routes
@@ -106,7 +108,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('parts', PartController::class);
         Route::get('tickets-search', [TicketController::class, 'search']);
         Route::get('parts-search', [PartController::class, 'search']);
-
+        Route::apiResource('repairs', RepairController::class);
+        Route::get('repairs-search', [RepairController::class, 'search']);
+        Route::apiResource('ticket-items', TicketItemController::class);
+        Route::get('tickets/{ticket_id}/items', [TicketItemController::class, 'getTicketItems']);
 
     });
 

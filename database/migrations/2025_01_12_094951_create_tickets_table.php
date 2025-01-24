@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('device_model');
             $table->string('imei')->nullable();
             $table->text('issue');
+            $table->decimal('service_charge', 10, 2)->nullable()->default('0');
             $table->enum('status', ['open', 'in_progress', 'completed'])->default('open');
             $table->timestamps();
         });

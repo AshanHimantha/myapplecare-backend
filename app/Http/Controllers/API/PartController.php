@@ -32,13 +32,14 @@ class PartController extends Controller
         ]);
 
         $data = $request->all();
+        $data['part_image'] = null; // Set default to null
 
         if ($request->hasFile('part_image')) {
             $file = $request->file('part_image');
             $extension = $file->getClientOriginalExtension();
             $filename = time() . '.' . $extension;
             $file->move(public_path('storage/parts'), $filename);
-            $data['part_image'] =  $filename;
+            $data['part_image'] = $filename;
         }
 
         $part = Part::create($data);
@@ -118,7 +119,7 @@ class PartController extends Controller
         $search = $request->input('search');
         $deviceCategory = $request->input('device_category');
         $grade = $request->input('grade');
-        $perPage = $request->input('per_page', 20);
+        $perPage = $request->input('per_page', 4);
 
         $query = Part::query()
             ->select([

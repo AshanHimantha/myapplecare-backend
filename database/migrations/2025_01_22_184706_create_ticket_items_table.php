@@ -12,11 +12,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('ticket_id')->constrained()->onDelete('cascade');
             $table->foreignId('part_id')->nullable()->constrained();
-            $table->string('part_name')->nullable();
-            $table->decimal('unit_price', 10, 2)->nullable();
+            $table->foreignId('repair_id')->nullable()->constrained();
             $table->integer('quantity')->nullable();
-            $table->decimal('total_price', 10, 2);
-            $table->enum('type', ['part', 'service']);
+            $table->enum('type', ['part','repair']);
             $table->text('service_description')->nullable();
             $table->timestamps();
         });
