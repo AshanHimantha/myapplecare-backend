@@ -17,19 +17,43 @@ class TicketItemController extends Controller
             'type' => 'required|in:part,repair',
             'part_id' => 'required_if:type,part|exists:parts,id',
             'repair_id' => 'required_if:type,repair|exists:repairs,id',
-            'quantity' => 'required_if:type,part|integer|min:1'
+            'quantity' => 'required_if:type,part|integer|min:1',
+            'serial' => 'nullable|string'
         ]);
 
-        $data = $request->all();
-
+        // Check for existing items
         if ($request->type === 'part') {
-            $part = Part::findOrFail($request->part_id);
-            $data['quantity'] = $request->quantity;
+            $exists = TicketItem::where('ticket_id', $request->ticket_id)
+                ->where('part_id', $request->part_id)
+                ->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'This part is already added to the ticket'
+                ], 422);
+            }
         } else {
-            $repair = Repair::findOrFail($request->repair_id);
+            $exists = TicketItem::where('ticket_id', $request->ticket_id)
+                ->where('repair_id', $request->repair_id)
+                ->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'This repair is already added to the ticket'
+                ], 422);
+            }
         }
 
-        $ticketItem = TicketItem::create($data);
+        $ticketItem = TicketItem::create([
+            'ticket_id' => $request->ticket_id,
+            'type' => $request->type,
+            'part_id' => $request->part_id,
+            'repair_id' => $request->repair_id,
+            'quantity' => $request->quantity,
+            'serial' => $request->serial
+        ]);
 
         return response()->json([
             'status' => 'success',

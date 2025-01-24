@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignId('repair_id')->nullable()->constrained();
             $table->integer('quantity')->nullable();
             $table->enum('type', ['part','repair']);
-            $table->text('service_description')->nullable();
+            $table->text('serial')->nullable();
             $table->timestamps();
         });
     }

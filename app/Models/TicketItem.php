@@ -14,6 +14,7 @@ class TicketItem extends Model
         'ticket_id',
         'part_id',
         'repair_id',
+        'serial',
         'quantity',
         'type',
     ];
