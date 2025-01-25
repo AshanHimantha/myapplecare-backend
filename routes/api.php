@@ -103,6 +103,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::group(['middleware' => ['role:technician']], function () {
 
+        Route::delete('tickets/{id}', [TicketController::class, 'destroy']);
+        Route::delete('tickets/{id}', [TicketController::class, 'destroy']);
         Route::apiResource('tickets', TicketController::class);
         Route::get('tickets-filter', [TicketController::class, 'filter']);
         Route::apiResource('parts', PartController::class);
@@ -112,7 +114,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('repairs-search', [RepairController::class, 'search']);
         Route::apiResource('ticket-items', TicketItemController::class);
         Route::get('tickets/{ticket_id}/items', [TicketItemController::class, 'getTicketItems']);
-
+        Route::delete('tickets/{id}', [TicketController::class, 'destroy']);
     });
 
 

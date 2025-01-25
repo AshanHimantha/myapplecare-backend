@@ -171,4 +171,16 @@ public function search(Request $request)
         ]
     ]);
 }
+
+public function destroy($id)
+{
+    $ticket = Ticket::findOrFail($id);
+    $ticket->delete();
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Ticket deleted successfully'
+    ]);
+
+}
 }
