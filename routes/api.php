@@ -16,8 +16,7 @@ use App\Http\Controllers\API\UserController;
 
 // Public Routes
 Route::post('/login', [AuthController::class, 'login']);
-
-Route::get('/categories', [CategoryController::class, 'index']);
+Route::post('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{category}', [CategoryController::class, 'show']);
 Route::get('/me', [AuthController::class, 'me']);
 Route::get('invoices', [InvoiceController::class, 'index']);
@@ -30,6 +29,8 @@ Route::get('/part-images/{filename}', function ($filename) {
     }
     return response()->file($path);
 });
+
+
 
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -79,7 +80,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/users/{user}', 'show');
             Route::put('/users/{user}', 'update');
             Route::delete('/users/{user}', 'destroy');
-            Route::post('/create-user', 'store');
         });
 
         Route::post('/addProduct', [ProductController::class, 'store']);
