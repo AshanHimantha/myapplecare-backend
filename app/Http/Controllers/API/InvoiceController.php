@@ -30,7 +30,7 @@ class InvoiceController extends Controller
     {
         $invoice = Invoice::with(['items.product', 'user'])
             ->findOrFail($id);
-    
+
         return response()->json([
             'status' => 'success',
             'data' => $invoice
@@ -47,4 +47,42 @@ class InvoiceController extends Controller
             'data' => $invoices
         ]);
     }
+
+        public function search(Request $request)
+    {
+        $search = $request->input('search');
+        $perPage = $request->input('per_page', 20);
+
+        $query = Invoice::query()
+            ->select([
+                'id',
+                'first_name',
+                'last_name',
+                'total_amount',
+                'created_at'
+            ]);
+
+        if ($search) {
+            $query->where(function($query) use ($search) {
+                $query->where('id', $search)
+                      ->orWhere('first_name', 'LIKE', "%{$search}%")
+                      ->orWhere('last_name', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $invoices = $query->orderBy('created_at', 'desc')
+                          ->paginate($perPage);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $invoices->items(),
+            'meta' => [
+                'current_page' => $invoices->currentPage(),
+                'last_page' => $invoices->lastPage(),
+                'per_page' => $invoices->perPage(),
+                'total' => $invoices->total()
+            ]
+        ]);
+    }
+
 }

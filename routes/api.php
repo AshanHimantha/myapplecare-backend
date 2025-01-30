@@ -6,6 +6,7 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\CartController;
 use App\Http\Controllers\API\CategoryController;
 use App\Http\Controllers\API\InvoiceController;
+use App\Http\Controllers\API\InvoiceItemController;
 use App\Http\Controllers\API\PartController;
 use App\Http\Controllers\API\ProductController;
 use App\Http\Controllers\API\RepairController;
@@ -30,6 +31,7 @@ Route::get('/part-images/{filename}', function ($filename) {
     return response()->file($path);
 });
 
+Route::get('invoices-search', [InvoiceController::class, 'search']);
 
 
 // Protected Routes
@@ -97,6 +99,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::group(['middleware' => ['role:cashier']], function () {
 
         Route::post('/cart/checkout', [CartController::class, 'checkout']);
+        Route::apiResource('invoice-items', InvoiceItemController::class);
+
 
     });
 
