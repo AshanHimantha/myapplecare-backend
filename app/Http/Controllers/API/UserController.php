@@ -13,9 +13,9 @@ class UserController extends Controller
     // CRUD operations
     public function index()
     {
-        // $users = User::with('roles')->get();
-        // return response()->json(['data' => $users]);
-    return "success";
+        $users = User::with('roles')->get();
+        return response()->json(['data' => $users]);
+
     }
 
     public function store(Request $request)
@@ -24,17 +24,21 @@ class UserController extends Controller
             'name' => 'required|string',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6',
-            'role' => 'required|exists:roles,name'
+            'roles' => 'required|array',
+            'roles.*' => 'exists:roles,name',
+            'status' => 'sometimes|in:active,inactive'
         ]);
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password'])
+            'password' => Hash::make($validated['password']),
+            'status' => $validated['status'] ?? 'active'
         ]);
 
-        $role = Role::where('name', $validated['role'])->first();
-        $user->roles()->attach($role);
+        // Get all roles and attach them to the user
+        $roles = Role::whereIn('name', $validated['roles'])->get();
+        $user->roles()->attach($roles);
 
         return response()->json([
             'status' => 'success',
@@ -49,11 +53,61 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
-        // Update user logic
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string',
+            'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
+            'password' => 'sometimes|required|min:6',
+            'roles' => 'sometimes|required|array',
+            'roles.*' => 'exists:roles,name',
+            'status' => 'sometimes|in:active,inactive'
+        ]);
+
+        // Update user details
+        if (isset($validated['name'])) {
+            $user->name = $validated['name'];
+        }
+        if (isset($validated['email'])) {
+            $user->email = $validated['email'];
+        }
+        if (isset($validated['password'])) {
+            $user->password = Hash::make($validated['password']);
+        }
+        if (isset($validated['status'])) {
+            $user->status = $validated['status'];
+        }
+        $user->save();
+
+        // Update roles if provided
+        if (isset($validated['roles'])) {
+            $roles = Role::whereIn('name', $validated['roles'])->get();
+            $user->roles()->sync($roles);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User updated successfully',
+            'data' => $user->load('roles')
+        ]);
     }
 
     public function destroy(User $user)
     {
         // Delete user logic
+    }
+
+    public function updateStatus(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:active,inactive'
+        ]);
+
+        $user->status = $validated['status'];
+        $user->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User status updated successfully',
+            'data' => $user->load('roles')
+        ]);
     }
 }

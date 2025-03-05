@@ -87,6 +87,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/device-categories', [CategoryController::class, 'storeDeviceCategory']);
         Route::post('/device-subcategories', [CategoryController::class, 'storeDeviceSubCategory']);
         Route::apiResource('stocks', StockController::class);
+        Route::patch('users/{user}/status', [UserController::class, 'updateStatus']);
     });
 
 
