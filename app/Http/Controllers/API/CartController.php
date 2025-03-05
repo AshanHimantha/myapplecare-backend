@@ -178,6 +178,7 @@ class CartController extends Controller
             InvoiceItem::create([
                 'invoice_id' => $invoice->id,
                 'product_id' => $item->stock->product_id,
+                'stock_id' => $item->stock_id,
                 'sold_price' => $item->stock->selling_price,
                 'cost_price' => $item->stock->cost_price,
                 'discount' => $item->price,

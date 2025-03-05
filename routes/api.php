@@ -17,7 +17,7 @@ use App\Http\Controllers\API\UserController;
 
 // Public Routes
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/categories', [CategoryController::class, 'index']);
+Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{category}', [CategoryController::class, 'show']);
 Route::get('/me', [AuthController::class, 'me']);
 Route::get('invoices', [InvoiceController::class, 'index']);
@@ -48,9 +48,6 @@ Route::middleware('auth:sanctum')->group(function () {
         }
         return response()->file($path);
     });
-
-
-
 
 
     Route::get('/cart', [CartController::class, 'index']);
@@ -100,7 +97,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/cart/checkout', [CartController::class, 'checkout']);
         Route::apiResource('invoice-items', InvoiceItemController::class);
-
+        Route::post('invoices/return', [InvoiceController::class, 'processReturn']);
 
     });
 

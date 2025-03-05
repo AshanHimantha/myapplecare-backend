@@ -4,7 +4,9 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
+use App\Models\ReturnedItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class InvoiceController extends Controller
 {
@@ -83,6 +85,94 @@ class InvoiceController extends Controller
                 'total' => $invoices->total()
             ]
         ]);
+    }
+
+        public function processReturn(Request $request)
+    {
+        $request->validate([
+            'invoice_id' => 'required|string',
+            'items' => 'required|array',
+            'items.*.item_id' => 'required|integer',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.return_type' => 'required|in:stock,damaged',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Find the invoice
+            $invoice = Invoice::with(['items.stock'])->findOrFail($request->invoice_id);
+
+            foreach ($request->items as $returnItem) {
+                // Find the invoice item
+                $invoiceItem = $invoice->items()->where('id', $returnItem['item_id'])->first();
+                
+                if (!$invoiceItem) {
+                    throw new \Exception("Item not found in invoice");
+                }
+
+                // Validate return quantity
+                if ($returnItem['quantity'] > $invoiceItem->quantity) {
+                    throw new \Exception("Return quantity cannot exceed purchased quantity");
+                }
+
+                // Process based on return type
+                if ($returnItem['return_type'] === 'stock') {
+                    // Add back to stock
+                    $stock = $invoiceItem->stock;
+                    if ($stock) {
+                        $stock->increment('quantity', $returnItem['quantity']);
+                    } else {
+                        throw new \Exception("Stock record not found");
+                    }
+                }
+
+                // Calculate new quantity
+                $newQuantity = $invoiceItem->quantity - $returnItem['quantity'];
+
+                if ($newQuantity === 0) {
+                    // If quantity becomes 0, delete the invoice item
+                    $invoiceItem->delete();
+                } else {
+                    // Update invoice item quantity
+                    $invoiceItem->update([
+                        'quantity' => $newQuantity
+                    ]);
+                }
+
+                // Create return record
+                ReturnedItem::create([
+                    'invoice_id' => $invoice->id,
+                    'product_id' => $invoiceItem->product_id,
+                    'stock_id' => $invoiceItem->stock_id,
+                    'quantity' => $returnItem['quantity'],
+                    'return_type' => $returnItem['return_type'],
+                    'returned_at' => now(),
+                ]);
+            }
+
+            // Refresh invoice relationship and recalculate total
+            $invoice->refresh();
+            $newTotal = $invoice->items->sum(function ($item) {
+                return $item->quantity * $item->unit_price;
+            });
+            $invoice->update(['total_amount' => $newTotal]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Return processed successfully',
+                'data' => $invoice->fresh(['items.stock'])
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 400);
+        }
     }
 
 }

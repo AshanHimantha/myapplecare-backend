@@ -9,7 +9,7 @@ class InvoiceItemController extends Controller
 {
     public function index()
     {
-        $items = InvoiceItem::with(['invoice', 'product'])->latest()->get();
+        $items = InvoiceItem::with(['invoice', 'product', 'stock'])->latest()->get();
         return response()->json([
             'status' => 'success',
             'data' => $items
@@ -21,6 +21,7 @@ class InvoiceItemController extends Controller
         $request->validate([
             'invoice_id' => 'required|exists:invoices,id',
             'product_id' => 'required|exists:products,id',
+            'stock_id' => 'required|exists:stocks,id',
             'quantity' => 'required|integer|min:1',
             'unit_price' => 'required|numeric|min:0',
             'total_price' => 'required|numeric|min:0'
@@ -31,13 +32,13 @@ class InvoiceItemController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Invoice item created successfully',
-            'data' => $item->load(['invoice', 'product'])
+            'data' => $item->load(['invoice', 'product', 'stock'])
         ], 201);
     }
 
     public function show($id)
     {
-        $item = InvoiceItem::with(['invoice', 'product'])->findOrFail($id);
+        $item = InvoiceItem::with(['invoice', 'product', 'stock'])->findOrFail($id);
         return response()->json([
             'status' => 'success',
             'data' => $item
@@ -49,6 +50,7 @@ class InvoiceItemController extends Controller
         $item = InvoiceItem::findOrFail($id);
 
         $request->validate([
+            'stock_id' => 'sometimes|required|exists:stocks,id',
             'quantity' => 'required|integer|min:1',
             'unit_price' => 'required|numeric|min:0',
             'total_price' => 'required|numeric|min:0'
@@ -59,7 +61,7 @@ class InvoiceItemController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Invoice item updated successfully',
-            'data' => $item->fresh()->load(['invoice', 'product'])
+            'data' => $item->fresh()->load(['invoice', 'product', 'stock'])
         ]);
     }
 
