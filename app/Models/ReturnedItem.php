@@ -10,6 +10,7 @@ class ReturnedItem extends Model
         'invoice_id',
         'product_id',
         'quantity',
+        'stock_id',
         'return_type',
         'returned_at'
     ];

@@ -61,19 +61,26 @@ class TicketController extends Controller
         ]);
     }
 
-     public function update(Request $request, $id)
+    public function update(Request $request, $id)
     {
         $ticket = Ticket::findOrFail($id);
 
         $request->validate([
-            'status' => 'required|in:open,in_progress,completed',
-            'service_charge' => 'numeric|min:0'
+            'status' => 'sometimes|required|in:open,in_progress,completed',
+            'service_charge' => 'sometimes|required|numeric|min:0'
         ]);
 
-        $ticket->update([
-            'status' => $request->status,
-            'service_charge' => $request->service_charge
-        ]);
+        $updateData = [];
+        
+        if ($request->has('status')) {
+            $updateData['status'] = $request->status;
+        }
+        
+        if ($request->has('service_charge')) {
+            $updateData['service_charge'] = $request->service_charge;
+        }
+
+        $ticket->update($updateData);
 
         return response()->json([
             'status' => 'success',
@@ -82,105 +89,103 @@ class TicketController extends Controller
         ]);
     }
 
-
     public function filter(Request $request)
-{
-    $perPage = $request->input('per_page', 20);
-    $status = $request->input('status');
+    {
+        $perPage = $request->input('per_page', 20);
+        $status = $request->input('status');
 
-    $query = Ticket::query()
-        ->with(['user:id,name']) // Select only needed fields
-        ->select([
-            'id',
-            'first_name',
-            'last_name',
-            'contact_number',
-            'device_model',
-            'device_category',
-            'priority',
-            'status',
-            'service_charge',
-            'created_at'
-        ])
-        ->orderBy('created_at', 'desc');
+        $query = Ticket::query()
+            ->with(['user:id,name']) // Select only needed fields
+            ->select([
+                'id',
+                'first_name',
+                'last_name',
+                'contact_number',
+                'device_model',
+                'device_category',
+                'priority',
+                'status',
+                'service_charge',
+                'created_at'
+            ])
+            ->orderBy('created_at', 'desc');
 
-    if ($status) {
-        $query->where('status', $status);
-    }
+        if ($status) {
+            $query->where('status', $status);
+        }
 
-    $tickets = $query->paginate($perPage);
+        $tickets = $query->paginate($perPage);
 
-    return response()->json([
-        'status' => 'success',
-        'data' => $tickets->items(),
-        'meta' => [
-            'current_page' => $tickets->currentPage(),
-            'last_page' => $tickets->lastPage(),
-            'per_page' => $tickets->perPage(),
-            'total' => $tickets->total()
-        ]
-    ]);
-}
-
-public function search(Request $request)
-{
-    $search = $request->input('search');
-    $status = $request->input('status');
-    $perPage = $request->input('per_page', 20);
-
-    $query = Ticket::query()
-        ->with(['user:id,name'])
-        ->select([
-            'id',
-            'first_name',
-            'last_name',
-            'contact_number',
-            'device_model',
-            'device_category',
-            'priority',
-            'status',
-            'service_charge',
-            'created_at'
+        return response()->json([
+            'status' => 'success',
+            'data' => $tickets->items(),
+            'meta' => [
+                'current_page' => $tickets->currentPage(),
+                'last_page' => $tickets->lastPage(),
+                'per_page' => $tickets->perPage(),
+                'total' => $tickets->total()
+            ]
         ]);
-
-    // Apply search filter
-    if ($search) {
-        $query->where(function($query) use ($search) {
-            $query->where('device_model', 'LIKE', "%{$search}%")
-                  ->orWhere('first_name', 'LIKE', "%{$search}%")
-                  ->orWhere('last_name', 'LIKE', "%{$search}%")
-                  ->orWhere('id', $search);
-        });
     }
 
-    // Apply status filter
-    if ($status) {
-        $query->where('status', $status);
+    public function search(Request $request)
+    {
+        $search = $request->input('search');
+        $status = $request->input('status');
+        $perPage = $request->input('per_page', 20);
+
+        $query = Ticket::query()
+            ->with(['user:id,name'])
+            ->select([
+                'id',
+                'first_name',
+                'last_name',
+                'contact_number',
+                'device_model',
+                'device_category',
+                'priority',
+                'status',
+                'service_charge',
+                'created_at'
+            ]);
+
+        // Apply search filter
+        if ($search) {
+            $query->where(function($query) use ($search) {
+                $query->where('device_model', 'LIKE', "%{$search}%")
+                      ->orWhere('first_name', 'LIKE', "%{$search}%")
+                      ->orWhere('last_name', 'LIKE', "%{$search}%")
+                      ->orWhere('id', $search);
+            });
+        }
+
+        // Apply status filter
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        $tickets = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $tickets->items(),
+            'meta' => [
+                'current_page' => $tickets->currentPage(),
+                'last_page' => $tickets->lastPage(),
+                'per_page' => $tickets->perPage(),
+                'total' => $tickets->total()
+            ]
+        ]);
     }
 
-    $tickets = $query->orderBy('created_at', 'desc')->paginate($perPage);
+    public function destroy($id)
+    {
+        $ticket = Ticket::findOrFail($id);
+        $ticket->delete();
 
-    return response()->json([
-        'status' => 'success',
-        'data' => $tickets->items(),
-        'meta' => [
-            'current_page' => $tickets->currentPage(),
-            'last_page' => $tickets->lastPage(),
-            'per_page' => $tickets->perPage(),
-            'total' => $tickets->total()
-        ]
-    ]);
-}
-
-public function destroy($id)
-{
-    $ticket = Ticket::findOrFail($id);
-    $ticket->delete();
-
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Ticket deleted successfully'
-    ]);
-
-}
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ticket deleted successfully'
+        ]);
+    }
 }
