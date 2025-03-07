@@ -28,4 +28,9 @@ class ReturnedItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public function stock()
+    {
+        return $this->belongsTo(Stock::class);
+    }
 }

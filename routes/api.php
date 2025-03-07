@@ -92,7 +92,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('users/{user}/status', [UserController::class, 'updateStatus']);
         Route::apiResource('repairs', RepairController::class);
         Route::get('/dashboard', [DashboardController::class, 'index']);
-Route::get('/dashboard/charts', [DashboardController::class, 'charts']);
+        Route::get('/dashboard/charts', [DashboardController::class, 'charts']);
+        Route::get('returned-items', [InvoiceController::class, 'returnedItems']);
     });
 
 
@@ -104,7 +105,6 @@ Route::get('/dashboard/charts', [DashboardController::class, 'charts']);
         Route::post('/cart/checkout', [CartController::class, 'checkout']);
         Route::apiResource('invoice-items', InvoiceItemController::class);
         Route::post('invoices/return', [InvoiceController::class, 'processReturn']);
-
     });
 
 
@@ -123,7 +123,4 @@ Route::get('/dashboard/charts', [DashboardController::class, 'charts']);
         Route::get('tickets/{ticket_id}/items', [TicketItemController::class, 'getTicketItems']);
         Route::delete('tickets/{id}', [TicketController::class, 'destroy']);
     });
-
-
-
 });

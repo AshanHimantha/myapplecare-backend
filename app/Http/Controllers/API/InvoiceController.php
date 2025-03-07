@@ -175,4 +175,29 @@ class InvoiceController extends Controller
         }
     }
 
+    public function returnedItems(Request $request)
+    {
+        $limit = $request->input('limit', 10);
+        
+        $returnedItems = ReturnedItem::with(['invoice', 'product', 'stock'])
+            ->when($request->date_from, function($query) use ($request) {
+                return $query->whereDate('returned_at', '>=', $request->date_from);
+            })
+            ->when($request->date_to, function($query) use ($request) {
+                return $query->whereDate('returned_at', '<=', $request->date_to);
+            })
+            ->orderBy('returned_at', 'desc')
+            ->paginate($limit);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $returnedItems->items(),
+            'meta' => [
+                'current_page' => $returnedItems->currentPage(),
+                'last_page' => $returnedItems->lastPage(),
+                'per_page' => $returnedItems->perPage(),
+                'total' => $returnedItems->total()
+            ]
+        ]);
+    }
 }
