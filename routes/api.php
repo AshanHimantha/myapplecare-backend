@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\CartController;
 use App\Http\Controllers\API\CategoryController;
+use App\Http\Controllers\API\DashboardController;
 use App\Http\Controllers\API\InvoiceController;
 use App\Http\Controllers\API\InvoiceItemController;
 use App\Http\Controllers\API\PartController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\API\StockController;
 use App\Http\Controllers\API\TicketController;
 use App\Http\Controllers\API\TicketItemController;
 use App\Http\Controllers\API\UserController;
+
 
 // Public Routes
 Route::post('/login', [AuthController::class, 'login']);
@@ -88,6 +90,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/device-subcategories', [CategoryController::class, 'storeDeviceSubCategory']);
         Route::apiResource('stocks', StockController::class);
         Route::patch('users/{user}/status', [UserController::class, 'updateStatus']);
+        Route::apiResource('repairs', RepairController::class);
+        Route::get('/dashboard', [DashboardController::class, 'index']);
+Route::get('/dashboard/charts', [DashboardController::class, 'charts']);
     });
 
 
