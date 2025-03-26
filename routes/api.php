@@ -105,9 +105,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('stocks', StockController::class);
         Route::patch('users/{user}/status', [UserController::class, 'updateStatus']);
         Route::apiResource('repairs', RepairController::class);
+        Route::get('returned-items', [InvoiceController::class, 'returnedItems']);
+
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::get('/dashboard/charts', [DashboardController::class, 'charts']);
-        Route::get('returned-items', [InvoiceController::class, 'returnedItems']);
+        Route::get('/dashboard/service-metrics', [DashboardController::class, 'serviceMetrics']);
+        Route::get('/dashboard/ticket-charts', [DashboardController::class, 'ticketCharts']);
     });
 
 
