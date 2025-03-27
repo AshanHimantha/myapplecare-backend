@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request)
+    public function SalesOutlet(Request $request)
     {
         $data = [];
         
@@ -146,7 +146,7 @@ class DashboardController extends Controller
         return response()->json($data);
     }
     
-    public function charts(Request $request)
+    public function Salesoutletcharts(Request $request)
     {
         $data = [];
         
@@ -590,6 +590,177 @@ class DashboardController extends Controller
                              $data['service_center_revenue']['repairs_revenue']
         ];
             
+        return response()->json($data);
+    }
+
+    /**
+     * Get combined dashboard overview of sales and service operations
+     */
+    public function index(Request $request)
+    {
+        $data = [];
+        
+        try {
+            // Basic counts
+            $data['total_invoices'] = Invoice::count();
+            $data['total_tickets'] = Ticket::count();
+            $data['total_products'] = Product::count();
+            
+            // Top-level metrics requested by frontend
+            $data['total_units_sold'] = InvoiceItem::sum('quantity') ?? 0;
+            $data['total_returns'] = ReturnedItem::count();
+            $data['total_sales'] = InvoiceItem::selectRaw('SUM((sold_price * quantity) - discount) as total_sales')->first()->total_sales ?? 0;
+            $data['total_profit'] = InvoiceItem::selectRaw('SUM((sold_price * quantity) - discount - (cost_price * quantity)) as total_profit')
+                ->first()->total_profit ?? 0;
+            $data['total_cost'] = InvoiceItem::selectRaw('SUM(cost_price * quantity) as total_cost')->first()->total_cost ?? 0;
+            $data['total_sales_today'] = InvoiceItem::whereDate('created_at', Carbon::today())
+                ->selectRaw('SUM((sold_price * quantity) - discount) as total_sales')->first()->total_sales ?? 0;
+            $data['total_sales_month'] = InvoiceItem::whereMonth('created_at', Carbon::now()->month)
+                ->selectRaw('SUM((sold_price * quantity) - discount) as total_sales')->first()->total_sales ?? 0;
+            $data['total_sales_last_7_days'] = InvoiceItem::whereBetween('created_at', [Carbon::now()->subDays(7), Carbon::now()])
+                ->selectRaw('SUM((sold_price * quantity) - discount) as total_sales')->first()->total_sales ?? 0;
+            $data['total_sales_last_30_days'] = InvoiceItem::whereBetween('created_at', [Carbon::now()->subDays(30), Carbon::now()])
+                ->selectRaw('SUM((sold_price * quantity) - discount) as total_sales')->first()->total_sales ?? 0;
+            $data['total_repairs_completed'] = TicketItem::where('type', TicketItem::TYPE_REPAIR)->count();
+            $data['total_parts_used'] = TicketItem::where('type', TicketItem::TYPE_PART)->sum('quantity') ?? 0;
+            
+            // Financial overview - Sales (Invoices) 
+            $data['sales_metrics'] = [
+                'total_sales' => $data['total_sales'],
+                'total_cost' => $data['total_cost'],
+                'total_profit' => $data['total_profit'],
+                'today_sales' => $data['total_sales_today'],
+                'month_sales' => $data['total_sales_month'],
+                'year_sales' => InvoiceItem::whereYear('created_at', Carbon::now()->year)
+                    ->selectRaw('SUM((sold_price * quantity) - discount) as total_sales')->first()->total_sales ?? 0
+            ];
+            
+            // Calculate profit margin for sales
+            $data['sales_metrics']['profit_margin'] = $data['sales_metrics']['total_sales'] > 0 ? 
+                round(($data['sales_metrics']['total_profit'] / $data['sales_metrics']['total_sales']) * 100, 2) : 0;
+            
+            // Financial overview - Service (Tickets)
+            $data['service_metrics'] = [
+                'total_service_revenue' => Ticket::sum('service_charge') ?? 0,
+                'repair_revenue' => TicketItem::where('type', TicketItem::TYPE_REPAIR)
+                    ->join('repairs', 'ticket_items.repair_id', '=', 'repairs.id')
+                    ->sum(DB::raw('repairs.cost * COALESCE(ticket_items.quantity, 1)')) ?? 0,
+                'parts_revenue' => TicketItem::where('type', TicketItem::TYPE_PART)
+                    ->join('parts', 'ticket_items.part_id', '=', 'parts.id')
+                    ->sum(DB::raw('parts.selling_price * COALESCE(ticket_items.quantity, 1)')) ?? 0,
+                'parts_cost' => TicketItem::where('type', TicketItem::TYPE_PART)
+                    ->join('parts', 'ticket_items.part_id', '=', 'parts.id')
+                    ->sum(DB::raw('parts.unit_price * COALESCE(ticket_items.quantity, 1)')) ?? 0
+            ];
+            
+            // Calculate parts profit
+            $data['service_metrics']['parts_profit'] = $data['service_metrics']['parts_revenue'] - $data['service_metrics']['parts_cost'];
+            
+            // Calculate total service revenue and profit (service charges and repair revenue are assumed to be all profit)
+            $data['service_metrics']['total_revenue'] = 
+                $data['service_metrics']['total_service_revenue'] + 
+                $data['service_metrics']['repair_revenue'] + 
+                $data['service_metrics']['parts_revenue'];
+                
+            $data['service_metrics']['total_profit'] = 
+                $data['service_metrics']['total_service_revenue'] + 
+                $data['service_metrics']['repair_revenue'] + 
+                $data['service_metrics']['parts_profit'];
+            
+            // Business-wide totals
+            $data['business_totals'] = [
+                'total_revenue' => $data['sales_metrics']['total_sales'] + $data['service_metrics']['total_revenue'],
+                'total_profit' => $data['sales_metrics']['total_profit'] + $data['service_metrics']['total_profit'],
+                'total_cost' => $data['sales_metrics']['total_cost'] + $data['service_metrics']['parts_cost']
+            ];
+            
+            // Overall profit margin
+            $data['business_totals']['profit_margin'] = $data['business_totals']['total_revenue'] > 0 ? 
+                round(($data['business_totals']['total_profit'] / $data['business_totals']['total_revenue']) * 100, 2) : 0;
+            
+            // Status distributions
+            $data['ticket_status'] = [
+                'open' => Ticket::where('status', 'open')->count(),
+                'in_progress' => Ticket::where('status', 'in_progress')->count(),
+                'completed' => Ticket::where('status', 'completed')->count(),
+                'cancelled' => Ticket::where('status', 'cancelled')->count(),
+            ];
+            
+            // Monthly trends (last 3 months)
+            $data['monthly_trends'] = [];
+            for ($i = 2; $i >= 0; $i--) {
+                $month = Carbon::now()->subMonths($i);
+                $monthLabel = $month->format('M Y');
+                
+                // Sales data
+                $monthlySales = InvoiceItem::whereYear('created_at', $month->year)
+                    ->whereMonth('created_at', $month->month)
+                    ->selectRaw('SUM((sold_price * quantity) - discount) as monthly_total')
+                    ->first()->monthly_total ?? 0;
+                    
+                $monthlyProfit = InvoiceItem::whereYear('created_at', $month->year)
+                    ->whereMonth('created_at', $month->month)
+                    ->selectRaw('SUM((sold_price * quantity) - discount - (cost_price * quantity)) as monthly_profit')
+                    ->first()->monthly_profit ?? 0;
+                
+                // Service data
+                $monthlyServiceRevenue = Ticket::whereYear('created_at', $month->year)
+                    ->whereMonth('created_at', $month->month)
+                    ->sum('service_charge') ?? 0;
+                    
+                $monthlyRepairRevenue = TicketItem::where('type', TicketItem::TYPE_REPAIR)
+                    ->join('repairs', 'ticket_items.repair_id', '=', 'repairs.id')
+                    ->whereYear('ticket_items.created_at', $month->year)
+                    ->whereMonth('ticket_items.created_at', $month->month)
+                    ->sum(DB::raw('repairs.cost * COALESCE(ticket_items.quantity, 1)')) ?? 0;
+                    
+                $monthlyPartsQuery = TicketItem::where('type', TicketItem::TYPE_PART)
+                    ->join('parts', 'ticket_items.part_id', '=', 'parts.id')
+                    ->whereYear('ticket_items.created_at', $month->year)
+                    ->whereMonth('ticket_items.created_at', $month->month);
+                    
+                $monthlyPartsRevenue = (clone $monthlyPartsQuery)
+                    ->sum(DB::raw('parts.selling_price * COALESCE(ticket_items.quantity, 1)')) ?? 0;
+                    
+                $monthlyPartsCost = (clone $monthlyPartsQuery)
+                    ->sum(DB::raw('parts.unit_price * COALESCE(ticket_items.quantity, 1)')) ?? 0;
+                    
+                $monthlyPartsProfit = $monthlyPartsRevenue - $monthlyPartsCost;
+                
+                // Calculate combined monthly metrics
+                $combinedMonthlyRevenue = $monthlySales + $monthlyServiceRevenue + $monthlyRepairRevenue + $monthlyPartsRevenue;
+                $combinedMonthlyProfit = $monthlyProfit + $monthlyServiceRevenue + $monthlyRepairRevenue + $monthlyPartsProfit;
+                
+                $data['monthly_trends'][] = [
+                    'month' => $monthLabel,
+                    'sales' => $monthlySales,
+                    'service_revenue' => $monthlyServiceRevenue + $monthlyRepairRevenue + $monthlyPartsRevenue,
+                    'total_revenue' => $combinedMonthlyRevenue,
+                    'total_profit' => $combinedMonthlyProfit,
+                    'profit_margin' => $combinedMonthlyRevenue > 0 ? 
+                        round(($combinedMonthlyProfit / $combinedMonthlyRevenue) * 100, 2) : 0
+                ];
+            }
+            
+            // Recent activity - modified to match expected response format
+            $data['recent_invoices'] = Invoice::orderByDesc('created_at')
+                ->limit(5)
+                ->get(['id', 'total_amount', 'created_at']);
+                
+            $data['recent_tickets'] = Ticket::orderByDesc('created_at')
+                ->limit(5)
+                ->get(['id', 'first_name', 'last_name', 'device_model', 'status', 'service_charge', 'created_at']);
+            
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            Log::error('Error in dashboard index: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            
+            // Return error information
+            $data['error'] = $e->getMessage();
+            $data['trace'] = $e->getTraceAsString();
+        }
+        
         return response()->json($data);
     }
 }
