@@ -111,6 +111,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard/charts', [DashboardController::class, 'charts']);
         Route::get('/dashboard/service-metrics', [DashboardController::class, 'serviceMetrics']);
         Route::get('/dashboard/ticket-charts', [DashboardController::class, 'ticketCharts']);
+
+        Route::get('/dashboard/sales-metrics', [DashboardController::class, 'SalesOutlet']);
+        
     });
 
 
