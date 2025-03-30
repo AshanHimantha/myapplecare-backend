@@ -154,7 +154,7 @@ class InvoiceController extends Controller
             // Refresh invoice relationship and recalculate total
             $invoice->refresh();
             $newTotal = $invoice->items->sum(function ($item) {
-                return $item->quantity * $item->unit_price;
+                return ($item->sold_price * $item->quantity) - ($item->discount ?? 0);
             });
             $invoice->update(['total_amount' => $newTotal]);
 
