@@ -26,13 +26,13 @@ Route::get('/me', [AuthController::class, 'me']);
 Route::get('invoices', [InvoiceController::class, 'index']);
 Route::get('invoices/{id}', [InvoiceController::class, 'show']);
 Route::get('invoices/daily', [InvoiceController::class, 'daily']);
-Route::get('/part-images/{filename}', function ($filename) {
-    $path = storage_path('app/public/parts/' . $filename);
-    if (!file_exists($path)) {
-        return response()->json(['message' => 'Image not found'], 404);
-    }
-    return response()->file($path);
-});
+// Route::get('/part-images/{filename}', function ($filename) {
+//     $path = storage_path('app/public/parts/' . $filename);
+//     if (!file_exists($path)) {
+//         return response()->json(['message' => 'Image not found'], 404);
+//     }
+//     return response()->file($path);
+// });
 
 Route::get('invoices-search', [InvoiceController::class, 'search']);
 
@@ -57,13 +57,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('stocks/available', [StockController::class, 'available']);
     Route::put('/products/{product}', [ProductController::class, 'update']);
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/product-images/{filename}', function ($filename) {
-        $path = storage_path('app/public/products/' . $filename);
-        if (!file_exists($path)) {
-            return response()->json(['message' => 'Image not found'], 404);
-        }
-        return response()->file($path);
-    });
+    // Route::get('/product-images/{filename}', function ($filename) {
+    //     $path = storage_path('app/public/products/' . $filename);
+    //     if (!file_exists($path)) {
+    //         return response()->json(['message' => 'Image not found'], 404);
+    //     }
+    //     return response()->file($path);
+    // });
 
 
     Route::get('/cart', [CartController::class, 'index']);
@@ -77,13 +77,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/searchProduct', [ProductController::class, 'index']);
     Route::get('/products/search/{id}', [ProductController::class, 'search']);
-    Route::get('/storage/products/{filename}', function ($filename) {
-        $path = storage_path('app/public/products/' . $filename);
-        if (!file_exists($path)) {
-            return response()->json(['message' => 'Image not found'], 404);
-        }
-        return response()->file($path);
-    });
+    // Route::get('/storage/products/{filename}', function ($filename) {
+    //     $path = storage_path('app/public/products/' . $filename);
+    //     if (!file_exists($path)) {
+    //         return response()->json(['message' => 'Image not found'], 404);
+    //     }
+    //     return response()->file($path);
+    // });
 
 
     // Admin Routes
@@ -103,25 +103,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/device-categories', [CategoryController::class, 'storeDeviceCategory']);
         Route::post('/device-subcategories', [CategoryController::class, 'storeDeviceSubCategory']);
         Route::apiResource('stocks', StockController::class);
+        Route::get('stocks-search', [StockController::class, 'search']);
         Route::patch('users/{user}/status', [UserController::class, 'updateStatus']);
         Route::apiResource('repairs', RepairController::class);
         Route::get('returned-items', [InvoiceController::class, 'returnedItems']);
-
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::get('/dashboard/charts', [DashboardController::class, 'charts']);
         Route::get('/dashboard/service-metrics', [DashboardController::class, 'serviceMetrics']);
         Route::get('/dashboard/ticket-charts', [DashboardController::class, 'ticketCharts']);
-
         Route::get('/dashboard/sales-metrics', [DashboardController::class, 'SalesOutlet']);
         
     });
 
 
-
-
     // cashier Routes
     Route::group(['middleware' => ['role:cashier']], function () {
-
         Route::post('/cart/checkout', [CartController::class, 'checkout']);
         Route::apiResource('invoice-items', InvoiceItemController::class);
         Route::post('invoices/return', [InvoiceController::class, 'processReturn']);

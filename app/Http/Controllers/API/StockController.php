@@ -9,9 +9,18 @@ use Illuminate\Http\Request;
 
 class StockController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $stocks = Stock::with('product')->get();
+        $query = Stock::with('product');
+        
+        // Get limit with default of 50 records
+        $limit = $request->has('limit') && is_numeric($request->limit) ? (int)$request->limit : 50;
+        
+        // Apply the limit
+        $query->limit($limit);
+        
+        $stocks = $query->get();
+        
         return response()->json([
             'status' => 'success',
             'data' => $stocks
@@ -31,6 +40,59 @@ class StockController extends Controller
     ]);
 }
 
+    public function search(Request $request)
+    {
+        $query = Stock::query()->with('product');
+
+        // Search by product name
+        if ($request->has('product_name')) {
+            $query->whereHas('product', function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->product_name . '%');
+            });
+        }
+
+        // Filter by condition
+        if ($request->has('condition')) {
+            $query->where('condition', $request->condition);
+        }
+
+        // Filter by serial number
+        if ($request->has('serial_number')) {
+            $query->where('serial_number', 'like', '%' . $request->serial_number . '%');
+        }
+
+        // Filter by color
+        if ($request->has('color')) {
+            $query->where('color', 'like', '%' . $request->color . '%');
+        }
+
+        // Filter by quantity range
+        if ($request->has('min_quantity')) {
+            $query->where('quantity', '>=', $request->min_quantity);
+        }
+
+        if ($request->has('max_quantity')) {
+            $query->where('quantity', '<=', $request->max_quantity);
+        }
+
+        // Filter by price range (selling price)
+        if ($request->has('min_price')) {
+            $query->where('selling_price', '>=', $request->min_price);
+        }
+        
+        if ($request->has('max_price')) {
+            $query->where('selling_price', '<=', $request->max_price);
+        }
+
+        // Pagination
+        $perPage = $request->input('per_page', 15);
+        $stocks = $query->paginate($perPage);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $stocks
+        ]);
+    }
 
     public function store(Request $request)
     {

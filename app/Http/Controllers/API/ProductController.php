@@ -9,17 +9,6 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
-
-    public function index()
-    {
-        $products = Product::with(['deviceCategory', 'deviceSubcategory'])->get();
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $products
-        ]);
-    }
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -35,14 +24,14 @@ class ProductController extends Controller
             $image = $request->file('image');
             $filename = time() . '.' . $image->getClientOriginalExtension();
             $path = $image->storeAs('products', $filename, 'public');
-            $validated['image'] = url('/storage/products/' . $filename);
+            $validated['image'] = 'products/' . $filename;
         }
 
         $product = Product::create($validated);
 
         return response()->json([
             'status' => 'success',
-            'data' => $product->load(['deviceCategory', 'deviceSubcategory'])
+            'data' => $this->appendImageUrl($product->load(['deviceCategory', 'deviceSubcategory']))
         ], 201);
     }
 
@@ -66,18 +55,27 @@ class ProductController extends Controller
             $image = $request->file('image');
             $filename = time() . '.' . $image->getClientOriginalExtension();
             $path = $image->storeAs('products', $filename, 'public');
-            $validated['image'] = url('/storage/products/' . $filename);
+            $validated['image'] = 'products/' . $filename;
         }
 
         $product->update($validated);
 
         return response()->json([
             'status' => 'success',
-            'data' => $product->fresh(['deviceCategory', 'deviceSubcategory'])
+            'data' => $this->appendImageUrl($product->fresh(['deviceCategory', 'deviceSubcategory']))
         ]);
     }
 
-    // search product from id
+    public function index()
+    {
+        $products = Product::with(['deviceCategory', 'deviceSubcategory'])->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $this->appendImageUrl($products)
+        ]);
+    }
+
     public function search($id)
     {
         $product = Product::with(['deviceCategory', 'deviceSubcategory'])->find($id);
@@ -91,11 +89,27 @@ class ProductController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $product
+            'data' => $this->appendImageUrl($product)
         ]);
     }
 
-
-
-
+    /**
+     * Append full URL to image paths
+     */
+    private function appendImageUrl($data)
+    {
+        if ($data instanceof \Illuminate\Database\Eloquent\Collection) {
+            return $data->map(function ($item) {
+                if ($item->image) {
+                    $item->image_url = url('storage/' . $item->image);
+                }
+                return $item;
+            });
+        } else {
+            if ($data->image) {
+                $data->image_url = url('storage/' . $data->image);
+            }
+            return $data;
+        }
+    }
 }
