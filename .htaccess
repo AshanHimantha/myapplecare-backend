@@ -1,7 +1,47 @@
-# Enable Rewrite Engine
-RewriteEngine On
+<IfModule mod_rewrite.c>
+    RewriteEngine On
 
-# Redirect all requests to index.html except for existing files and directories
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /index.html [L]
+    # Redirect www to non-www
+    RewriteCond %{HTTP_HOST} ^www\. [NC]
+    RewriteRule ^ https://jcreations.1000dtechnology.com%{REQUEST_URI} [L,R=301,NE]
+
+    # Force HTTPS
+    RewriteCond %{HTTPS} off
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301,NE]
+
+    # Redirect all requests to the /public folder (Laravel structure)
+    RewriteCond %{REQUEST_URI} !^/public
+    RewriteRule ^(.*)$ public/$1 [L]
+
+    # Laravel-friendly routing (within /public)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ public/index.php [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization"
+</IfModule>
+
+# Disable directory listing
+Options -Indexes
+
+# Block sensitive files
+<Files ~ "\.(env|json|config.js|md|gitignore|gitattributes|lock|example)$">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Allow image files
+<FilesMatch "\.(jpg|jpeg|png|gif)$">
+    Order allow,deny
+    Allow from all
+</FilesMatch>
+
+# Block access to artisan
+<Files ~ "^(artisan)$">
+    Order allow,deny
+    Deny from all
+</Files>
