@@ -7,9 +7,38 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use OpenApi\Annotations as OA;
 
 class AuthController extends Controller
 {
+    /**
+     * @OA\Post(
+     *     path="/api/login",
+     *     tags={"Authentication"},
+     *     summary="User login",
+     *     description="Login user and generate API token",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email","password"},
+     *             @OA\Property(property="email", type="string", format="email", example="admin@example.com"),
+     *             @OA\Property(property="password", type="string", example="password")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Login successful",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="success"),
+     *             @OA\Property(property="message", type="string", example="Login successful"),
+     *             @OA\Property(property="token", type="string", example="1|abcd1234..."),
+     *             @OA\Property(property="user", ref="#/components/schemas/User")
+     *         )
+     *     ),
+     *     @OA\Response(response=422, description="Validation error"),
+     *     @OA\Response(response=401, description="Invalid credentials")
+     * )
+     */
     public function login(Request $request)
     {
         $request->validate([
@@ -43,6 +72,24 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/logout",
+     *     tags={"Authentication"},
+     *     summary="User logout",
+     *     description="Logout user and revoke API token",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Logout successful",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="success"),
+     *             @OA\Property(property="message", type="string", example="Successfully logged out")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized")
+     * )
+     */
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -52,7 +99,26 @@ class AuthController extends Controller
         ]);
     }
 
-       public function me(Request $request)
+    /**
+     * @OA\Get(
+     *     path="/api/me",
+     *     tags={"Authentication"},
+     *     summary="Get current user",
+     *     description="Get current authenticated user information",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="User information retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="success"),
+     *             @OA\Property(property="user", ref="#/components/schemas/User"),
+     *             @OA\Property(property="roles", type="array", @OA\Items(type="string"))
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized")
+     * )
+     */
+    public function me(Request $request)
     {
         if (!$request->bearerToken()) {
             return response()->json([

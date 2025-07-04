@@ -2,13 +2,31 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Http\Controllers\Controller;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use OpenApi\Annotations as OA;
 
-class TicketController extends Controller
+class TicketController extends BaseController
 {
+    /**
+     * @OA\Get(
+     *     path="/api/tickets",
+     *     tags={"Tickets"},
+     *     summary="Get all tickets",
+     *     description="Retrieve a list of all tickets",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="success"),
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Ticket"))
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized")
+     * )
+     */
     public function index()
     {
         $tickets = Ticket::with(['user', 'repairedBy'])->latest()->get();
@@ -18,6 +36,41 @@ class TicketController extends Controller
         ]);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/tickets",
+     *     tags={"Tickets"},
+     *     summary="Create a new ticket",
+     *     description="Create a new support ticket",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"first_name","last_name","contact_number","priority","device_category","device_model","issue"},
+     *             @OA\Property(property="first_name", type="string", example="John"),
+     *             @OA\Property(property="last_name", type="string", example="Doe"),
+     *             @OA\Property(property="contact_number", type="string", example="+1234567890"),
+     *             @OA\Property(property="priority", type="string", enum={"low","medium","high"}, example="medium"),
+     *             @OA\Property(property="device_category", type="string", enum={"iphone","android","other"}, example="iphone"),
+     *             @OA\Property(property="device_model", type="string", example="iPhone 14 Pro"),
+     *             @OA\Property(property="imei", type="string", example="123456789012345"),
+     *             @OA\Property(property="issue", type="string", example="Screen not working"),
+     *             @OA\Property(property="service_charge", type="number", format="float", example=150.00)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Ticket created successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="success"),
+     *             @OA\Property(property="message", type="string", example="Ticket created successfully"),
+     *             @OA\Property(property="data", ref="#/components/schemas/Ticket")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -52,6 +105,32 @@ class TicketController extends Controller
         ], 201);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/tickets/{id}",
+     *     tags={"Tickets"},
+     *     summary="Get ticket by ID",
+     *     description="Retrieve a specific ticket by its ID",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Ticket ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="success"),
+     *             @OA\Property(property="data", ref="#/components/schemas/Ticket")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     *     @OA\Response(response=404, description="Ticket not found")
+     * )
+     */
     public function show($id)
     {
         $ticket = Ticket::with(['user', 'repairedBy'])->findOrFail($id);
@@ -61,6 +140,42 @@ class TicketController extends Controller
         ]);
     }
 
+    /**
+     * @OA\Put(
+     *     path="/api/tickets/{id}",
+     *     tags={"Tickets"},
+     *     summary="Update a ticket",
+     *     description="Update a specific ticket's details",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Ticket ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", enum={"open","in_progress","completed"}, example="in_progress"),
+     *             @OA\Property(property="service_charge", type="number", format="float", example=200.00),
+     *             @OA\Property(property="repaired_by", type="integer", example=2, description="User ID who will repair the ticket")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Ticket updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="success"),
+     *             @OA\Property(property="message", type="string", example="Ticket updated successfully"),
+     *             @OA\Property(property="data", ref="#/components/schemas/Ticket")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     *     @OA\Response(response=404, description="Ticket not found"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
+     */
     public function update(Request $request, $id)
     {
         $ticket = Ticket::findOrFail($id);
@@ -94,6 +209,42 @@ class TicketController extends Controller
         ]);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/tickets/filter",
+     *     tags={"Tickets"},
+     *     summary="Filter tickets",
+     *     description="Filter tickets by status with pagination",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="status",
+     *         in="query",
+     *         description="Filter by ticket status",
+     *         @OA\Schema(type="string", enum={"open","in_progress","completed"})
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Number of tickets per page",
+     *         @OA\Schema(type="integer", default=20)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="success"),
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Ticket")),
+     *             @OA\Property(property="meta", type="object",
+     *                 @OA\Property(property="current_page", type="integer"),
+     *                 @OA\Property(property="last_page", type="integer"),
+     *                 @OA\Property(property="per_page", type="integer"),
+     *                 @OA\Property(property="total", type="integer")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized")
+     * )
+     */
     public function filter(Request $request)
     {
         $perPage = $request->input('per_page', 20);
@@ -135,6 +286,48 @@ class TicketController extends Controller
         ]);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/tickets/search",
+     *     tags={"Tickets"},
+     *     summary="Search tickets",
+     *     description="Search tickets by device model, customer name, or ticket ID",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Search term",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="status",
+     *         in="query",
+     *         description="Filter by ticket status",
+     *         @OA\Schema(type="string", enum={"open","in_progress","completed"})
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Number of tickets per page",
+     *         @OA\Schema(type="integer", default=20)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="success"),
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Ticket")),
+     *             @OA\Property(property="meta", type="object",
+     *                 @OA\Property(property="current_page", type="integer"),
+     *                 @OA\Property(property="last_page", type="integer"),
+     *                 @OA\Property(property="per_page", type="integer"),
+     *                 @OA\Property(property="total", type="integer")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized")
+     * )
+     */
     public function search(Request $request)
     {
         $search = $request->input('search');
@@ -187,6 +380,32 @@ class TicketController extends Controller
         ]);
     }
 
+    /**
+     * @OA\Delete(
+     *     path="/api/tickets/{id}",
+     *     tags={"Tickets"},
+     *     summary="Delete a ticket",
+     *     description="Delete a specific ticket",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Ticket ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Ticket deleted successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="success"),
+     *             @OA\Property(property="message", type="string", example="Ticket deleted successfully")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     *     @OA\Response(response=404, description="Ticket not found")
+     * )
+     */
     public function destroy($id)
     {
         $ticket = Ticket::findOrFail($id);
