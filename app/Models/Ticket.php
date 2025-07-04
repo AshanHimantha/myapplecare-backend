@@ -9,6 +9,7 @@ class Ticket extends Model
 {
     protected $fillable = [
         'user_id',
+        'repaired_by',
         'first_name',
         'last_name',
         'contact_number',
@@ -30,6 +31,11 @@ class Ticket extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function repairedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'repaired_by');
     }
 
     public function items()

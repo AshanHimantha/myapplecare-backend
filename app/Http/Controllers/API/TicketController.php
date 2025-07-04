@@ -11,7 +11,7 @@ class TicketController extends Controller
 {
     public function index()
     {
-        $tickets = Ticket::with('user')->latest()->get();
+        $tickets = Ticket::with(['user', 'repairedBy'])->latest()->get();
         return response()->json([
             'status' => 'success',
             'data' => $tickets
@@ -54,7 +54,7 @@ class TicketController extends Controller
 
     public function show($id)
     {
-        $ticket = Ticket::with('user')->findOrFail($id);
+        $ticket = Ticket::with(['user', 'repairedBy'])->findOrFail($id);
         return response()->json([
             'status' => 'success',
             'data' => $ticket
@@ -67,7 +67,8 @@ class TicketController extends Controller
 
         $request->validate([
             'status' => 'sometimes|required|in:open,in_progress,completed',
-            'service_charge' => 'sometimes|required|numeric|min:0'
+            'service_charge' => 'sometimes|required|numeric|min:0',
+            'repaired_by' => 'sometimes|nullable|exists:users,id'
         ]);
 
         $updateData = [];
@@ -80,12 +81,16 @@ class TicketController extends Controller
             $updateData['service_charge'] = $request->service_charge;
         }
 
+        if ($request->has('repaired_by')) {
+            $updateData['repaired_by'] = $request->repaired_by;
+        }
+
         $ticket->update($updateData);
 
         return response()->json([
             'status' => 'success',
             'message' => 'Ticket updated successfully',
-            'data' => $ticket->fresh()->load('user')
+            'data' => $ticket->fresh()->load(['user', 'repairedBy'])
         ]);
     }
 
@@ -95,9 +100,11 @@ class TicketController extends Controller
         $status = $request->input('status');
 
         $query = Ticket::query()
-            ->with(['user:id,name']) // Select only needed fields
+            ->with(['user:id,name', 'repairedBy:id,name']) // Select only needed fields
             ->select([
                 'id',
+                'user_id',
+                'repaired_by',
                 'first_name',
                 'last_name',
                 'contact_number',
@@ -135,9 +142,11 @@ class TicketController extends Controller
         $perPage = $request->input('per_page', 20);
 
         $query = Ticket::query()
-            ->with(['user:id,name'])
+            ->with(['user:id,name', 'repairedBy:id,name'])
             ->select([
                 'id',
+                'user_id',
+                'repaired_by',
                 'first_name',
                 'last_name',
                 'contact_number',
