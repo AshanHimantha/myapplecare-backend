@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
@@ -53,6 +52,7 @@ Route::get('clear-cache', function () {
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
 
+    Route::get('/users', [UserController::class, 'index']);
 
     Route::get('stocks/available', [StockController::class, 'available']);
     Route::put('/products/{product}', [ProductController::class, 'update']);
@@ -90,7 +90,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::group(['middleware' => ['role:admin']], function () {
 
         Route::controller(UserController::class)->group(function () {
-            Route::get('/users', 'index');
+           
             Route::post('/users', 'store');
             Route::get('/users/{user}', 'show');
             Route::put('/users/{user}', 'update');
@@ -127,7 +127,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::group(['middleware' => ['role:technician']], function () {
 
         Route::delete('tickets/{id}', [TicketController::class, 'destroy']);
-        Route::delete('tickets/{id}', [TicketController::class, 'destroy']);
         Route::apiResource('tickets', TicketController::class);
         Route::get('tickets-filter', [TicketController::class, 'filter']);
         Route::apiResource('parts', PartController::class);
@@ -137,6 +136,5 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('repairs-search', [RepairController::class, 'search']);
         Route::apiResource('ticket-items', TicketItemController::class);
         Route::get('tickets/{ticket_id}/items', [TicketItemController::class, 'getTicketItems']);
-        Route::delete('tickets/{id}', [TicketController::class, 'destroy']);
     });
 });

@@ -291,7 +291,7 @@ class TicketController extends BaseController
      *     path="/api/tickets/search",
      *     tags={"Tickets"},
      *     summary="Search tickets",
-     *     description="Search tickets by device model, customer name, or ticket ID",
+     *     description="Search tickets by device model, customer name, contact number, or ticket ID",
      *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="search",
@@ -357,6 +357,7 @@ class TicketController extends BaseController
                 $query->where('device_model', 'LIKE', "%{$search}%")
                       ->orWhere('first_name', 'LIKE', "%{$search}%")
                       ->orWhere('last_name', 'LIKE', "%{$search}%")
+                      ->orWhere('contact_number', 'LIKE', "%{$search}%")
                       ->orWhere('id', $search);
             });
         }
