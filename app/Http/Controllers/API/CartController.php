@@ -9,6 +9,8 @@ use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Stock;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class CartController extends Controller
@@ -116,17 +118,18 @@ class CartController extends Controller
         }
 
         $item->update($validated);
-        $this->updateCartTotal($item->cart);
+        $cart = $item->cart()->first();
+        $this->updateCartTotal($cart);
 
         return response()->json([
             'status' => 'success',
-            'data' => $item->cart->load('items.stock.product')
+            'data' => $cart->load('items.stock.product')
         ]);
     }
 
     public function removeItem(CartItem $item)
     {
-        $cart = $item->cart;
+        $cart = $item->cart()->first();
         $item->delete();
         $this->updateCartTotal($cart);
 
@@ -196,6 +199,9 @@ class CartController extends Controller
         $cart->items()->delete();
         $cart->delete();
 
+        // Send SMS notification
+        $this->sendSMSNotification($request->contact_number, $invoice->id);
+
         return response()->json([
             'status' => 'success',
             'message' => 'Checkout successful',
@@ -209,11 +215,58 @@ class CartController extends Controller
 
     private function updateCartTotal(Cart $cart)
     {
-        $total = $cart->items->sum(function ($item) {
-            return $item->quantity * $item->price;
-        });
+        $cart->load('items');
+        $total = 0;
+        foreach ($cart->items as $item) {
+            $total += $item->quantity * $item->price;
+        }
 
         $cart->update(['total_amount' => $total]);
+    }
+
+    /**
+     * Send SMS notification after successful invoice creation
+     */
+    private function sendSMSNotification($contactNumber, $invoiceId)
+    {
+        try {
+            $apiKey = config('services.sms.api_key');
+            $apiUrl = config('services.sms.api_url');
+            $sourceAddress = config('services.sms.source_address');
+            
+            // Clean phone number (remove any non-numeric characters except +)
+            $phoneNumber = preg_replace('/[^0-9+]/', '', $contactNumber);
+            
+            // Ensure Sri Lankan format (add 94 if starts with 0)
+            if (substr($phoneNumber, 0, 1) === '0') {
+                $phoneNumber = '94' . substr($phoneNumber, 1);
+            }
+            
+            $message = "Thank you for your purchase at {$sourceAddress}! Your invoice #{$invoiceId} has been generated successfully. We appreciate your business!";
+            
+            $response = Http::get($apiUrl, [
+                'esmsqk' => $apiKey,
+                'list' => $phoneNumber,
+                'source_address' => $sourceAddress,
+                'message' => $message
+            ]);
+            
+            // Log SMS response for debugging
+            Log::info('SMS API Response', [
+                'phone' => $phoneNumber,
+                'invoice_id' => $invoiceId,
+                'status_code' => $response->status(),
+                'response_body' => $response->body()
+            ]);
+            
+        } catch (\Exception $e) {
+            // Log error but don't fail the checkout process
+            Log::error('SMS sending failed', [
+                'phone' => $contactNumber,
+                'invoice_id' => $invoiceId,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     public function destroy(Cart $cart)

@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
@@ -35,4 +34,9 @@ return [
         ],
     ],
 
+    'sms' => [
+        'api_key' => env('SMS_API_KEY'),
+        'api_url' => env('SMS_API_URL'),
+        'source_address' => env('SMS_SOURCE_ADDRESS', 'MyAppleCare'),
+    ],
 ];
