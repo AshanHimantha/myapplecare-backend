@@ -242,7 +242,7 @@ class CartController extends Controller
                 $phoneNumber = '94' . substr($phoneNumber, 1);
             }
             
-            $message = "Thank you for your purchase at {$sourceAddress}! Your invoice #{$invoiceId} has been generated successfully. We appreciate your business!";
+            $message = "🍎 Thank you for choosing {$sourceAddress}! 🎉 Your purchase is complete! View your invoice #{$invoiceId} here: https://myapplecare.1000dtechnology.com/customer-invoice/{$invoiceId} 📄✨ We appreciate your trust in us!";
             
             $response = Http::get($apiUrl, [
                 'esmsqk' => $apiKey,

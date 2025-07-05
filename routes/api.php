@@ -19,12 +19,8 @@ use App\Http\Controllers\API\UserController;
 
 // Public Routes
 Route::post('/login', [AuthController::class, 'login']);
-Route::get('/categories', [CategoryController::class, 'index']);
-Route::get('/categories/{category}', [CategoryController::class, 'show']);
-Route::get('/me', [AuthController::class, 'me']);
-Route::get('invoices', [InvoiceController::class, 'index']);
 Route::get('invoices/{id}', [InvoiceController::class, 'show']);
-Route::get('invoices/daily', [InvoiceController::class, 'daily']);
+
 // Route::get('/part-images/{filename}', function ($filename) {
 //     $path = storage_path('app/public/parts/' . $filename);
 //     if (!file_exists($path)) {
@@ -51,6 +47,13 @@ Route::get('clear-cache', function () {
 
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
+
+
+    Route::get('/categories', [CategoryController::class, 'index']);
+Route::get('/categories/{category}', [CategoryController::class, 'show']);
+Route::get('/me', [AuthController::class, 'me']);
+Route::get('invoices', [InvoiceController::class, 'index']);
+Route::get('invoices/daily', [InvoiceController::class, 'daily']);
 
     Route::get('/users', [UserController::class, 'index']);
 
