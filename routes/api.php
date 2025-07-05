@@ -125,21 +125,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     Route::group(['middleware' => ['role:technician']], function () {
-        // Tickets routes
-        Route::get('tickets/filter', [TicketController::class, 'filter']);
-        Route::get('tickets/search', [TicketController::class, 'search']);
+
+        Route::delete('tickets/{id}', [TicketController::class, 'destroy']);
+        Route::delete('tickets/{id}', [TicketController::class, 'destroy']);
         Route::apiResource('tickets', TicketController::class);
-        
-        // Parts routes
+        Route::get('tickets-filter', [TicketController::class, 'filter']);
         Route::apiResource('parts', PartController::class);
-        Route::get('parts/search', [PartController::class, 'search']);
-        
-        // Repairs routes
+        Route::get('tickets-search', [TicketController::class, 'search']);
+        Route::get('parts-search', [PartController::class, 'search']);
         Route::apiResource('repairs', RepairController::class);
-        Route::get('repairs/search', [RepairController::class, 'search']);
-        
-        // Ticket items routes
+        Route::get('repairs-search', [RepairController::class, 'search']);
         Route::apiResource('ticket-items', TicketItemController::class);
         Route::get('tickets/{ticket_id}/items', [TicketItemController::class, 'getTicketItems']);
+        Route::delete('tickets/{id}', [TicketController::class, 'destroy']);
     });
 });
