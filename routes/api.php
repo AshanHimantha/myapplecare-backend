@@ -20,6 +20,7 @@ use App\Http\Controllers\API\UserController;
 // Public Routes
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('invoices/{id}', [InvoiceController::class, 'show']);
+Route::get('tickets/{id}', [TicketController::class, 'show']);
 
 // Route::get('/part-images/{filename}', function ($filename) {
 //     $path = storage_path('app/public/parts/' . $filename);
