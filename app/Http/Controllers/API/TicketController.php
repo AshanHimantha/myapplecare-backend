@@ -5,6 +5,8 @@ namespace App\Http\Controllers\API;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use OpenApi\Annotations as OA;
 
 class TicketController extends BaseController
@@ -187,6 +189,7 @@ class TicketController extends BaseController
         ]);
 
         $updateData = [];
+        $previousStatus = $ticket->status;
         
         if ($request->has('status')) {
             $updateData['status'] = $request->status;
@@ -201,6 +204,11 @@ class TicketController extends BaseController
         }
 
         $ticket->update($updateData);
+
+        // Send SMS if ticket status changed to completed
+        if ($request->has('status') && $request->status === 'completed' && $previousStatus !== 'completed') {
+            $this->sendTicketCompletionSMS($ticket->contact_number, $ticket->id);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -416,5 +424,50 @@ class TicketController extends BaseController
             'status' => 'success',
             'message' => 'Ticket deleted successfully'
         ]);
+    }
+
+    /**
+     * Send SMS notification when ticket is completed
+     */
+    private function sendTicketCompletionSMS($contactNumber, $ticketId)
+    {
+        try {
+            $apiKey = config('services.sms.api_key');
+            $apiUrl = config('services.sms.api_url');
+            $sourceAddress = config('services.sms.source_address');
+            
+            // Clean phone number (remove any non-numeric characters except +)
+            $phoneNumber = preg_replace('/[^0-9+]/', '', $contactNumber);
+            
+            // Ensure Sri Lankan format (add 94 if starts with 0)
+            if (substr($phoneNumber, 0, 1) === '0') {
+                $phoneNumber = '94' . substr($phoneNumber, 1);
+            }
+            
+            $message = "Dear Customer,\n\nGreat news! Your repair ticket has been completed.\nTicket ID: #{$ticketId}\n\nView your ticket details:\nhttps://myapplecare.1000dtechnology.com/ticket/{$ticketId}\n\nYour device is ready for pickup.\n\nThank you for choosing {$sourceAddress}!\n\nBest regards,\n{$sourceAddress} Team";
+            
+            $response = Http::get($apiUrl, [
+                'esmsqk' => $apiKey,
+                'list' => $phoneNumber,
+                'source_address' => $sourceAddress,
+                'message' => $message
+            ]);
+            
+            // Log SMS response for debugging
+            Log::info('Ticket Completion SMS API Response', [
+                'phone' => $phoneNumber,
+                'ticket_id' => $ticketId,
+                'status_code' => $response->status(),
+                'response_body' => $response->body()
+            ]);
+            
+        } catch (\Exception $e) {
+            // Log error but don't fail the ticket update process
+            Log::error('Ticket completion SMS sending failed', [
+                'phone' => $contactNumber,
+                'ticket_id' => $ticketId,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 }
