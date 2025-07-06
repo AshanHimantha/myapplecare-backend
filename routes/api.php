@@ -21,6 +21,7 @@ use App\Http\Controllers\API\UserController;
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('invoices/{id}', [InvoiceController::class, 'show']);
 Route::get('tickets/{id}', [TicketController::class, 'show']);
+Route::get('tickets/{ticket_id}/items', [TicketItemController::class, 'getTicketItems']);
 
 // Route::get('/part-images/{filename}', function ($filename) {
 //     $path = storage_path('app/public/parts/' . $filename);
@@ -139,6 +140,6 @@ Route::get('invoices/daily', [InvoiceController::class, 'daily']);
         Route::apiResource('repairs', RepairController::class);
         Route::get('repairs-search', [RepairController::class, 'search']);
         Route::apiResource('ticket-items', TicketItemController::class);
-        Route::get('tickets/{ticket_id}/items', [TicketItemController::class, 'getTicketItems']);
+       
     });
 });
