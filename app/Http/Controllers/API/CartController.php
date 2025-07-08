@@ -242,7 +242,8 @@ class CartController extends Controller
                 $phoneNumber = '94' . substr($phoneNumber, 1);
             }
             
-            $message = "Dear Customer,\n\nThank you for choosing {$sourceAddress}!\n\nYour purchase has been completed successfully.\nInvoice ID: #{$invoiceId}\n\nView your invoice online:\nhttps://myapplecare.1000dtechnology.com/customer-invoice/{$invoiceId}\n\nWe appreciate your trust in our services.\n\nBest regards,\n{$sourceAddress} Team";
+             $randomNumbers = rand(100, 999);
+             $message = "Dear Customer,\n\nThank you for choosing {$sourceAddress}!\n\nYour purchase has been completed successfully.\nInvoice ID: #{$invoiceId}\n\nView your invoice online:\nhttps://myapplecare.1000dtechnology.com/customer-invoice/{$invoiceId}{$randomNumbers}\n\nWe appreciate your trust in our services.\n\nBest regards,\n{$sourceAddress} Team";
             
             $response = Http::get($apiUrl, [
                 'esmsqk' => $apiKey,
