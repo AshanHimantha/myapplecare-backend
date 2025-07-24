@@ -146,7 +146,7 @@ class CartController extends Controller
             'first_name' => 'required|string',
             'last_name' => 'required|string',
             'contact_number' => 'required|string',
-            'payment_method' => 'required|in:cash,card',
+            'payment_method' => 'required|in:cash,card,bank_transfer',
             'total_amount' => 'required|numeric|min:0'
         ]);
 
