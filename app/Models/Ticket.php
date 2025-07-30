@@ -46,12 +46,14 @@ class Ticket extends Model
         'issue',
         'status',
         'service_charge'
+        , 'payment_type'
     ];
 
     protected $casts = [
         'priority' => 'string',
         'device_category' => 'string',
         'status' => 'string'
+        , 'payment_type' => 'string'
     ];
 
     public function user(): BelongsTo

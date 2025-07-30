@@ -185,7 +185,9 @@ class TicketController extends BaseController
         $request->validate([
             'status' => 'sometimes|required|in:open,in_progress,completed',
             'service_charge' => 'sometimes|required|numeric|min:0',
-            'repaired_by' => 'sometimes|nullable|exists:users,id'
+            'repaired_by' => 'sometimes|nullable|exists:users,id',
+            'payment_type' => 'sometimes|nullable|string',
+            'imei' => 'sometimes|nullable|string',
         ]);
 
         $updateData = [];
@@ -201,6 +203,12 @@ class TicketController extends BaseController
 
         if ($request->has('repaired_by')) {
             $updateData['repaired_by'] = $request->repaired_by;
+        }
+        if ($request->has('payment_type')) {
+            $updateData['payment_type'] = $request->payment_type;
+        }
+        if ($request->has('imei')) {
+            $updateData['imei'] = $request->imei;
         }
 
         $ticket->update($updateData);
