@@ -22,6 +22,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('invoices/{id}', [InvoiceController::class, 'show']);
 Route::get('tickets/{id}', [TicketController::class, 'show']);
 Route::get('tickets/{ticket_id}/items', [TicketItemController::class, 'getTicketItems']);
+ Route::get('tickets/payment-type/credit', [TicketController::class, 'getCreditPaymentTickets']);
 
 // Route::get('/part-images/{filename}', function ($filename) {
 //     $path = storage_path('app/public/parts/' . $filename);
@@ -50,12 +51,12 @@ Route::get('clear-cache', function () {
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
 
-
+   
     Route::get('/categories', [CategoryController::class, 'index']);
-Route::get('/categories/{category}', [CategoryController::class, 'show']);
-Route::get('/me', [AuthController::class, 'me']);
-Route::get('invoices', [InvoiceController::class, 'index']);
-Route::get('invoices/daily', [InvoiceController::class, 'daily']);
+    Route::get('/categories/{category}', [CategoryController::class, 'show']);
+    Route::get('/me', [AuthController::class, 'me']);
+    Route::get('invoices', [InvoiceController::class, 'index']);
+    Route::get('invoices/daily', [InvoiceController::class, 'daily']);
 
     Route::get('/users', [UserController::class, 'index']);
 
@@ -95,7 +96,7 @@ Route::get('invoices/daily', [InvoiceController::class, 'daily']);
     Route::group(['middleware' => ['role:admin']], function () {
 
         Route::controller(UserController::class)->group(function () {
-           
+
             Route::post('/users', 'store');
             Route::get('/users/{user}', 'show');
             Route::put('/users/{user}', 'update');
@@ -117,7 +118,6 @@ Route::get('invoices/daily', [InvoiceController::class, 'daily']);
         Route::get('/dashboard/service-metrics', [DashboardController::class, 'serviceMetrics']);
         Route::get('/dashboard/ticket-charts', [DashboardController::class, 'ticketCharts']);
         Route::get('/dashboard/sales-metrics', [DashboardController::class, 'SalesOutlet']);
-        
     });
 
 
@@ -140,6 +140,5 @@ Route::get('invoices/daily', [InvoiceController::class, 'daily']);
         Route::apiResource('repairs', RepairController::class);
         Route::get('repairs-search', [RepairController::class, 'search']);
         Route::apiResource('ticket-items', TicketItemController::class);
-       
     });
 });

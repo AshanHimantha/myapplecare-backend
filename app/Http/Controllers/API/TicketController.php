@@ -13,6 +13,32 @@ class TicketController extends BaseController
 {
     /**
      * @OA\Get(
+     *     path="/api/tickets/payment-type/credit",
+     *     tags={"Tickets"},
+     *     summary="Get tickets with payment_type as credit",
+     *     description="Retrieve all tickets where payment_type is 'credit'",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="success"),
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Ticket"))
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized")
+     * )
+     */
+    public function getCreditPaymentTickets()
+    {
+        $tickets = Ticket::where('payment_type', 'credit')->with(['user', 'repairedBy'])->get();
+        return response()->json([
+            'status' => 'success',
+            'data' => $tickets
+        ]);
+    }
+    /**
+     * @OA\Get(
      *     path="/api/tickets",
      *     tags={"Tickets"},
      *     summary="Get all tickets",
@@ -280,7 +306,8 @@ class TicketController extends BaseController
                 'priority',
                 'status',
                 'service_charge',
-                'created_at'
+                'created_at',
+                'payment_type'
             ])
             ->orderBy('created_at', 'desc');
 
@@ -364,7 +391,8 @@ class TicketController extends BaseController
                 'priority',
                 'status',
                 'service_charge',
-                'created_at'
+                'created_at',
+                'payment_type'
             ]);
 
         // Apply search filter
