@@ -357,47 +357,28 @@ class DashboardController extends Controller
             $repairItemCount = (clone $repairItemsQuery)->count();
             
             if ($repairCount > 0 && $repairItemCount > 0) {
-                // Get repair items with join to repairs table
-                $repairItems = (clone $repairItemsQuery)
-                    ->join('repairs', 'ticket_items.repair_id', '=', 'repairs.id')
-                    ->select(
-                        'ticket_items.id',
-                        'ticket_items.quantity',
-                        'ticket_items.created_at', // Explicitly select created_at to avoid ambiguity
-                        'repairs.cost',
-                        DB::raw('repairs.cost * COALESCE(ticket_items.quantity, 1) as revenue')
-                    )
-                    ->get();
-                    
-                // Calculate totals manually
-                $totalRepairRevenue = 0;
-                $monthlyRepairRevenue = 0;
-                $yearlyRepairRevenue = 0;
-                $currentMonth = Carbon::now()->month;
-                $currentYear = Carbon::now()->year;
+                // Calculate repair revenue using SQL aggregation for better performance
+                // Build a fresh query to avoid column ambiguity issues
+                $repairRevenueQuery = TicketItem::where('type', TicketItem::TYPE_REPAIR)
+                    ->join('repairs', 'ticket_items.repair_id', '=', 'repairs.id');
                 
-                foreach ($repairItems as $item) {
-                    // Convert to float and handle NULL quantity by defaulting to 1
-                    $itemQuantity = $item->quantity !== null ? intval($item->quantity) : 1;
-                    $itemRevenue = floatval($item->cost) * $itemQuantity;
-                    $totalRepairRevenue += $itemRevenue;
-                    
-                    // Check if this item is from current month/year
-                    if (isset($item->created_at)) {
-                        $createdAt = Carbon::parse($item->created_at);
-                        if ($createdAt->year == $currentYear) {
-                            $yearlyRepairRevenue += $itemRevenue;
-                            
-                            if ($createdAt->month == $currentMonth) {
-                                $monthlyRepairRevenue += $itemRevenue;
-                            }
-                        }
-                    }
+                if ($hasCustomRange) {
+                    $repairRevenueQuery->whereBetween('ticket_items.created_at', [$startDate->startOfDay(), $endDate->endOfDay()]);
                 }
                 
-                $data['repair_revenue'] = $totalRepairRevenue;
-                $data['repair_revenue_month'] = $monthlyRepairRevenue;
-                $data['repair_revenue_year'] = $yearlyRepairRevenue;
+                $data['repair_revenue'] = $repairRevenueQuery
+                    ->sum(DB::raw('repairs.cost * COALESCE(ticket_items.quantity, 1)')) ?? 0;
+                
+                // Standard period metrics (maintain backward compatibility)
+                $data['repair_revenue_month'] = TicketItem::where('type', TicketItem::TYPE_REPAIR)
+                    ->join('repairs', 'ticket_items.repair_id', '=', 'repairs.id')
+                    ->whereMonth('ticket_items.created_at', Carbon::now()->month)
+                    ->sum(DB::raw('repairs.cost * COALESCE(ticket_items.quantity, 1)')) ?? 0;
+                    
+                $data['repair_revenue_year'] = TicketItem::where('type', TicketItem::TYPE_REPAIR)
+                    ->join('repairs', 'ticket_items.repair_id', '=', 'repairs.id')
+                    ->whereYear('ticket_items.created_at', Carbon::now()->year)
+                    ->sum(DB::raw('repairs.cost * COALESCE(ticket_items.quantity, 1)')) ?? 0;
                 
             } else {
                 $data['repair_revenue'] = 0;
@@ -409,22 +390,22 @@ class DashboardController extends Controller
             $partsExist = DB::table('parts')->exists();
             
             if ($partsExist) {
-                // FIX: Specifically use ticket_items.created_at to avoid ambiguity
-                $partsQuery = (clone $partsItemsQuery)
+                // Build parts query with proper date filtering to avoid column ambiguity
+                $partsQuery = TicketItem::where('type', TicketItem::TYPE_PART)
                     ->join('parts', 'ticket_items.part_id', '=', 'parts.id')
                     ->whereNotNull('parts.selling_price')
                     ->whereNotNull('parts.unit_price');
-                    
+                
                 if ($hasCustomRange) {
-                    // FIX: Explicitly qualify the created_at column with the table name
                     $partsQuery->whereBetween('ticket_items.created_at', [$startDate->startOfDay(), $endDate->endOfDay()]);
                 }
                     
+                // Calculate parts revenue and cost - Fixed: Use 1 as default quantity instead of 0
                 $data['parts_revenue'] = (clone $partsQuery)
-                    ->sum(DB::raw('COALESCE(parts.selling_price, 0) * COALESCE(ticket_items.quantity, 0)')) ?? 0;
+                    ->sum(DB::raw('COALESCE(parts.selling_price, 0) * COALESCE(ticket_items.quantity, 1)')) ?? 0;
                     
                 $data['parts_cost'] = (clone $partsQuery)
-                    ->sum(DB::raw('COALESCE(parts.unit_price, 0) * COALESCE(ticket_items.quantity, 0)')) ?? 0;
+                    ->sum(DB::raw('COALESCE(parts.unit_price, 0) * COALESCE(ticket_items.quantity, 1)')) ?? 0;
                     
                 $data['parts_profit'] = $data['parts_revenue'] - $data['parts_cost'];
                 
@@ -433,13 +414,13 @@ class DashboardController extends Controller
                     ->join('parts', 'ticket_items.part_id', '=', 'parts.id')
                     ->whereNotNull('parts.selling_price')
                     ->whereNotNull('parts.unit_price')
-                    ->whereMonth('ticket_items.created_at', Carbon::now()->month); // FIX: Explicitly specify ticket_items.created_at
+                    ->whereMonth('ticket_items.created_at', Carbon::now()->month);
                     
                 $data['parts_revenue_month'] = (clone $partsMonthQuery)
-                    ->sum(DB::raw('COALESCE(parts.selling_price, 0) * COALESCE(ticket_items.quantity, 0)')) ?? 0;
+                    ->sum(DB::raw('COALESCE(parts.selling_price, 0) * COALESCE(ticket_items.quantity, 1)')) ?? 0;
                     
                 $data['parts_cost_month'] = (clone $partsMonthQuery)
-                    ->sum(DB::raw('COALESCE(parts.unit_price, 0) * COALESCE(ticket_items.quantity, 0)')) ?? 0;
+                    ->sum(DB::raw('COALESCE(parts.unit_price, 0) * COALESCE(ticket_items.quantity, 1)')) ?? 0;
                     
                 $data['parts_profit_month'] = $data['parts_revenue_month'] - $data['parts_cost_month'];
                 
@@ -448,13 +429,13 @@ class DashboardController extends Controller
                     ->join('parts', 'ticket_items.part_id', '=', 'parts.id')
                     ->whereNotNull('parts.selling_price')
                     ->whereNotNull('parts.unit_price')
-                    ->whereYear('ticket_items.created_at', Carbon::now()->year); // FIX: Explicitly specify ticket_items.created_at
+                    ->whereYear('ticket_items.created_at', Carbon::now()->year);
                     
                 $data['parts_revenue_year'] = (clone $partsYearQuery)
-                    ->sum(DB::raw('COALESCE(parts.selling_price, 0) * COALESCE(ticket_items.quantity, 0)')) ?? 0;
+                    ->sum(DB::raw('COALESCE(parts.selling_price, 0) * COALESCE(ticket_items.quantity, 1)')) ?? 0;
                     
                 $data['parts_cost_year'] = (clone $partsYearQuery)
-                    ->sum(DB::raw('COALESCE(parts.unit_price, 0) * COALESCE(ticket_items.quantity, 0)')) ?? 0;
+                    ->sum(DB::raw('COALESCE(parts.unit_price, 0) * COALESCE(ticket_items.quantity, 1)')) ?? 0;
                     
                 $data['parts_profit_year'] = $data['parts_revenue_year'] - $data['parts_cost_year'];
             } else {
