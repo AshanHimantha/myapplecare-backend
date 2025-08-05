@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TicketItem extends Model
 {
-    const TYPE_PART = 'part';
-    const TYPE_REPAIR = 'repair';
+    public const TYPE_PART = 'part';
+    public const TYPE_REPAIR = 'repair';
 
     protected $fillable = [
         'ticket_id',

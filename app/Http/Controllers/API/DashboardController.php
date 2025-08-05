@@ -334,8 +334,8 @@ class DashboardController extends Controller
             
             if ($hasCustomRange) {
                 $ticketsQuery->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()]);
-                $repairItemsQuery->whereBetween('ticket_items.created_at', [$startDate->startOfDay(), $endDate->endOfDay()]);
-                $partsItemsQuery->whereBetween('ticket_items.created_at', [$startDate->startOfDay(), $endDate->endOfDay()]);
+                $repairItemsQuery->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()]);
+                $partsItemsQuery->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()]);
             }
             
             // Basic ticket counts with optional date filtering
@@ -348,7 +348,6 @@ class DashboardController extends Controller
             $data['service_revenue'] = $ticketsQuery->sum('service_charge') ?? 0;
             
             // Standard period metrics (maintain backward compatibility)
-            $data['service_revenue_today'] = Ticket::whereDate('created_at', Carbon::today())->sum('service_charge') ?? 0;
             $data['service_revenue_month'] = Ticket::whereMonth('created_at', Carbon::now()->month)->sum('service_charge') ?? 0;
             $data['service_revenue_year'] = Ticket::whereYear('created_at', Carbon::now()->year)->sum('service_charge') ?? 0;
             
@@ -404,10 +403,8 @@ class DashboardController extends Controller
                 $data['parts_revenue'] = (clone $partsQuery)
                     ->sum(DB::raw('COALESCE(parts.selling_price, 0) * COALESCE(ticket_items.quantity, 1)')) ?? 0;
                     
-                $data['parts_cost'] = (clone $partsQuery)
-                    ->sum(DB::raw('COALESCE(parts.unit_price, 0) * COALESCE(ticket_items.quantity, 1)')) ?? 0;
-                    
-                $data['parts_profit'] = $data['parts_revenue'] - $data['parts_cost'];
+                $data['parts_profit'] = $data['parts_revenue'] - ((clone $partsQuery)
+                    ->sum(DB::raw('COALESCE(parts.unit_price, 0) * COALESCE(ticket_items.quantity, 1)')) ?? 0);
                 
                 // Standard period metrics (maintain backward compatibility)
                 $partsMonthQuery = TicketItem::where('type', TicketItem::TYPE_PART)
@@ -418,11 +415,6 @@ class DashboardController extends Controller
                     
                 $data['parts_revenue_month'] = (clone $partsMonthQuery)
                     ->sum(DB::raw('COALESCE(parts.selling_price, 0) * COALESCE(ticket_items.quantity, 1)')) ?? 0;
-                    
-                $data['parts_cost_month'] = (clone $partsMonthQuery)
-                    ->sum(DB::raw('COALESCE(parts.unit_price, 0) * COALESCE(ticket_items.quantity, 1)')) ?? 0;
-                    
-                $data['parts_profit_month'] = $data['parts_revenue_month'] - $data['parts_cost_month'];
                 
                 // Yearly parts metrics
                 $partsYearQuery = TicketItem::where('type', TicketItem::TYPE_PART)
@@ -433,27 +425,87 @@ class DashboardController extends Controller
                     
                 $data['parts_revenue_year'] = (clone $partsYearQuery)
                     ->sum(DB::raw('COALESCE(parts.selling_price, 0) * COALESCE(ticket_items.quantity, 1)')) ?? 0;
-                    
-                $data['parts_cost_year'] = (clone $partsYearQuery)
-                    ->sum(DB::raw('COALESCE(parts.unit_price, 0) * COALESCE(ticket_items.quantity, 1)')) ?? 0;
-                    
-                $data['parts_profit_year'] = $data['parts_revenue_year'] - $data['parts_cost_year'];
             } else {
                 // Set to zero if no parts exist
-                $data['parts_revenue'] = $data['parts_cost'] = $data['parts_profit'] = 0;
-                $data['parts_revenue_month'] = $data['parts_cost_month'] = $data['parts_profit_month'] = 0;
-                $data['parts_revenue_year'] = $data['parts_cost_year'] = $data['parts_profit_year'] = 0;
+                $data['parts_revenue'] = $data['parts_profit'] = 0;
+                $data['parts_revenue_month'] = 0;
+                $data['parts_revenue_year'] = 0;
             }
             
-            // Total revenue (combined)
-            $data['total_service_revenue'] = $data['service_revenue'] + $data['repair_revenue'] + $data['parts_revenue'];
-            $data['total_service_revenue_month'] = $data['service_revenue_month'] + $data['repair_revenue_month'] + $data['parts_revenue_month'];
-            $data['total_service_revenue_year'] = $data['service_revenue_year'] + $data['repair_revenue_year'] + $data['parts_revenue_year'];
+            // Total revenue (combined) - Calculate per ticket: service_charge + parts + repairs
+            // This gives the total amount charged to customers for each ticket
+            $totalServiceRevenueQuery = Ticket::query();
             
-            // Total profit (combined)
-            $data['total_service_profit'] = $data['service_revenue'] + $data['repair_revenue'] + $data['parts_profit'];
-            $data['total_service_profit_month'] = $data['service_revenue_month'] + $data['repair_revenue_month'] + $data['parts_profit_month'];
-            $data['total_service_profit_year'] = $data['service_revenue_year'] + $data['repair_revenue_year'] + $data['parts_profit_year'];
+            if ($hasCustomRange) {
+                $totalServiceRevenueQuery->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()]);
+            }
+            
+            // Get all tickets with their items to calculate total revenue per ticket
+            $tickets = $totalServiceRevenueQuery->with(['items.part', 'items.repair'])->get();
+            
+            $totalRevenue = 0;
+            foreach ($tickets as $ticket) {
+                // Start with service charge
+                $ticketRevenue = $ticket->service_charge ?? 0;
+                
+                // Add parts and repairs for this ticket
+                foreach ($ticket->items as $item) {
+                    if ($item->type === TicketItem::TYPE_PART && $item->part) {
+                        $ticketRevenue += ($item->part->selling_price ?? 0) * ($item->quantity ?? 1);
+                    } elseif ($item->type === TicketItem::TYPE_REPAIR && $item->repair) {
+                        $ticketRevenue += ($item->repair->cost ?? 0) * 1; // Repairs are always quantity 1
+                    }
+                }
+                
+                $totalRevenue += $ticketRevenue;
+            }
+            
+            $data['total_service_revenue'] = $totalRevenue;
+            
+            // Only include yearly total if no custom date range is selected
+            if (!$hasCustomRange) {
+                // Calculate yearly total using the same logic
+                $yearlyTickets = Ticket::whereYear('created_at', Carbon::now()->year)
+                    ->with(['items.part', 'items.repair'])->get();
+                    
+                $yearlyRevenue = 0;
+                foreach ($yearlyTickets as $ticket) {
+                    $ticketRevenue = $ticket->service_charge ?? 0;
+                    foreach ($ticket->items as $item) {
+                        if ($item->type === TicketItem::TYPE_PART && $item->part) {
+                            $ticketRevenue += ($item->part->selling_price ?? 0) * ($item->quantity ?? 1);
+                        } elseif ($item->type === TicketItem::TYPE_REPAIR && $item->repair) {
+                            $ticketRevenue += ($item->repair->cost ?? 0) * 1;
+                        }
+                    }
+                    $yearlyRevenue += $ticketRevenue;
+                }
+                
+                $data['total_service_revenue_year'] = $yearlyRevenue;
+            }
+            
+            // Total profit (combined) - Calculate per ticket: service_charge + parts_profit + repairs
+            // Service charges and repairs are pure profit, parts have cost deducted
+            $totalProfit = 0;
+            foreach ($tickets as $ticket) {
+                // Start with service charge (pure profit)
+                $ticketProfit = $ticket->service_charge ?? 0;
+                
+                // Add parts profit and repairs for this ticket
+                foreach ($ticket->items as $item) {
+                    if ($item->type === TicketItem::TYPE_PART && $item->part) {
+                        $partRevenue = ($item->part->selling_price ?? 0) * ($item->quantity ?? 1);
+                        $partCost = ($item->part->unit_price ?? 0) * ($item->quantity ?? 1);
+                        $ticketProfit += ($partRevenue - $partCost); // Parts profit
+                    } elseif ($item->type === TicketItem::TYPE_REPAIR && $item->repair) {
+                        $ticketProfit += ($item->repair->cost ?? 0) * 1; // Repairs are pure profit
+                    }
+                }
+                
+                $totalProfit += $ticketProfit;
+            }
+            
+            $data['total_service_profit'] = $totalProfit;
             
             // Essential item counts with date filtering if provided
             $data['total_parts_used'] = (clone $partsItemsQuery)->sum('quantity') ?? 0;
