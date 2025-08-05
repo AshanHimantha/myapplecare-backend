@@ -23,6 +23,7 @@ class RepairController extends Controller
             'repair_name' => 'required|string',
             'device_category' => 'required|in:iphone,android,other',
             'cost' => 'required|numeric|min:0',
+            'selling_price' => 'nullable|numeric|min:0',
             'description' => 'nullable|string'
         ]);
 
@@ -52,6 +53,7 @@ class RepairController extends Controller
             'repair_name' => 'required|string',
             'device_category' => 'required|in:iphone,android,other',
             'cost' => 'required|numeric|min:0',
+            'selling_price' => 'nullable|numeric|min:0',
             'description' => 'nullable|string'
         ]);
 

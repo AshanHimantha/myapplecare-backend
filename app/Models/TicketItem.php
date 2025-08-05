@@ -17,11 +17,15 @@ class TicketItem extends Model
         'serial',
         'quantity',
         'type',
+        'sold_price',
+        'cost',
     ];
 
     protected $casts = [
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
+        'sold_price' => 'decimal:2',
+        'cost' => 'decimal:2',
         'quantity' => 'integer'
     ];
 

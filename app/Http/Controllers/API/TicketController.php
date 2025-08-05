@@ -31,7 +31,7 @@ class TicketController extends BaseController
      */
     public function getCreditPaymentTickets()
     {
-        $tickets = Ticket::where('payment_type', 'credit')->with(['user', 'repairedBy'])->get();
+        $tickets = Ticket::where('payment_type', 'credit')->with(['user', 'repairedBy', 'items'])->get();
         return response()->json([
             'status' => 'success',
             'data' => $tickets
@@ -57,7 +57,7 @@ class TicketController extends BaseController
      */
     public function index()
     {
-        $tickets = Ticket::with(['user', 'repairedBy'])->latest()->get();
+        $tickets = Ticket::with(['user', 'repairedBy', 'items'])->latest()->get();
         return response()->json([
             'status' => 'success',
             'data' => $tickets
@@ -161,7 +161,7 @@ class TicketController extends BaseController
      */
     public function show($id)
     {
-        $ticket = Ticket::with(['user', 'repairedBy'])->findOrFail($id);
+        $ticket = Ticket::with(['user', 'repairedBy', 'items.part', 'items.repair'])->findOrFail($id);
         return response()->json([
             'status' => 'success',
             'data' => $ticket

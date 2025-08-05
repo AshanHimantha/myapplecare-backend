@@ -18,6 +18,9 @@ class Part extends Model
     ];
 
     protected $casts = [
+        'unit_price' => 'decimal:2',
+        'selling_price' => 'decimal:2',
+        'quantity' => 'integer',
         'device_category' => 'string',
         'grade' => 'string'
     ];

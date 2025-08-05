@@ -4,8 +4,6 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\TicketItem;
-use App\Models\Part;
-use App\Models\Repair;
 use Illuminate\Http\Request;
 
 class TicketItemController extends Controller
@@ -18,7 +16,9 @@ class TicketItemController extends Controller
             'part_id' => 'required_if:type,part|exists:parts,id',
             'repair_id' => 'required_if:type,repair|exists:repairs,id',
             'quantity' => 'required_if:type,part|integer|min:1',
-            'serial' => 'nullable|string'
+            'serial' => 'nullable|string',
+            'sold_price' => 'nullable|numeric|min:0',
+            'cost' => 'nullable|numeric|min:0'
         ]);
 
         // Check for existing items
@@ -52,7 +52,9 @@ class TicketItemController extends Controller
             'part_id' => $request->part_id,
             'repair_id' => $request->repair_id,
             'quantity' => $request->quantity,
-            'serial' => $request->serial
+            'serial' => $request->serial,
+            'sold_price' => $request->sold_price,
+            'cost' => $request->cost
         ]);
 
         return response()->json([
@@ -67,7 +69,9 @@ class TicketItemController extends Controller
         $ticketItem = TicketItem::findOrFail($id);
 
         $request->validate([
-            'quantity' => 'required_if:type,part|integer|min:1'
+            'quantity' => 'required_if:type,part|integer|min:1',
+            'sold_price' => 'nullable|numeric|min:0',
+            'cost' => 'nullable|numeric|min:0'
         ]);
 
         $ticketItem->update($request->all());
