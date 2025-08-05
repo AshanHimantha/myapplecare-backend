@@ -118,6 +118,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard/service-metrics', [DashboardController::class, 'serviceMetrics']);
         Route::get('/dashboard/ticket-charts', [DashboardController::class, 'ticketCharts']);
         Route::get('/dashboard/sales-metrics', [DashboardController::class, 'SalesOutlet']);
+        
+    
     });
 
 
@@ -140,5 +142,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('repairs', RepairController::class);
         Route::get('repairs-search', [RepairController::class, 'search']);
         Route::apiResource('ticket-items', TicketItemController::class);
+       
     });
 });

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\TicketItem;
+use App\Models\Part;
+use App\Models\Repair;
 use Illuminate\Http\Request;
 
 class TicketItemController extends Controller
@@ -16,9 +18,7 @@ class TicketItemController extends Controller
             'part_id' => 'required_if:type,part|exists:parts,id',
             'repair_id' => 'required_if:type,repair|exists:repairs,id',
             'quantity' => 'required_if:type,part|integer|min:1',
-            'serial' => 'nullable|string',
-            'sold_price' => 'nullable|numeric|min:0',
-            'cost' => 'nullable|numeric|min:0'
+            'serial' => 'nullable|string'
         ]);
 
         // Check for existing items
@@ -46,6 +46,24 @@ class TicketItemController extends Controller
             }
         }
 
+        // Fetch prices from database based on type
+        $soldPrice = null;
+        $cost = null;
+
+        if ($request->type === 'part') {
+            $part = Part::find($request->part_id);
+            if ($part) {
+                $soldPrice = $part->selling_price;
+                $cost = $part->unit_price;
+            }
+        } else { // repair
+            $repair = Repair::find($request->repair_id);
+            if ($repair) {
+                $soldPrice = $repair->selling_price ?? $repair->cost; // Use selling_price first, fallback to cost
+                $cost = 0; // Repairs typically don't have a cost (pure profit)
+            }
+        }
+
         $ticketItem = TicketItem::create([
             'ticket_id' => $request->ticket_id,
             'type' => $request->type,
@@ -53,8 +71,8 @@ class TicketItemController extends Controller
             'repair_id' => $request->repair_id,
             'quantity' => $request->quantity,
             'serial' => $request->serial,
-            'sold_price' => $request->sold_price,
-            'cost' => $request->cost
+            'sold_price' => $soldPrice,
+            'cost' => $cost
         ]);
 
         return response()->json([
@@ -70,11 +88,34 @@ class TicketItemController extends Controller
 
         $request->validate([
             'quantity' => 'required_if:type,part|integer|min:1',
-            'sold_price' => 'nullable|numeric|min:0',
-            'cost' => 'nullable|numeric|min:0'
+            'serial' => 'nullable|string'
         ]);
 
-        $ticketItem->update($request->all());
+        // Prepare update data
+        $updateData = [];
+        
+        if ($request->has('quantity')) {
+            $updateData['quantity'] = $request->quantity;
+        }
+        
+        if ($request->has('serial')) {
+            $updateData['serial'] = $request->serial;
+        }
+
+        // If quantity is being updated for a part, recalculate prices
+        if ($request->has('quantity') && $ticketItem->type === 'part') {
+            // Prices per unit remain the same, but we might want to refresh them
+            // from the current part pricing in case the part prices have changed
+            if ($ticketItem->part_id) {
+                $part = Part::find($ticketItem->part_id);
+                if ($part) {
+                    $updateData['sold_price'] = $part->selling_price;
+                    $updateData['cost'] = $part->unit_price;
+                }
+            }
+        }
+
+        $ticketItem->update($updateData);
 
         return response()->json([
             'status' => 'success',
@@ -105,4 +146,9 @@ class TicketItemController extends Controller
             'data' => $items
         ]);
     }
+
+    /**
+     * Refresh prices for a ticket item from the current part/repair pricing
+     */
+    
 }
