@@ -1,66 +1,123 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# My Apple Care - Backend API ⚙️
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+[![PHP](https://img.shields.io/badge/PHP-8.0+-8892BF.svg?logo=php)](https://www.php.net)
+[![Laravel](https://img.shields.io/badge/Laravel-11.x-FF2D20.svg?logo=laravel)](https://laravel.com)
 
-## About Laravel
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+This repository contains the Laravel backend API that powers the **My Apple Care** web application. It handles user authentication, data management, and the core business logic for the service.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+**🖥️ View the React Frontend:** [AshanHimantha/myapplecare-frontend](https://github.com/AshanHimantha/myapplecare-frontend)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## ✨ Features
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- **RESTful API:** A well-structured API for all frontend operations.
+- **JWT Authentication:** Secure, token-based authentication using the Laravel Sanctum.
+- **Role-Based Access Control:** Custom middleware (`isAdmin`) protects admin-only routes, separating user and administrator privileges.
+- **Eloquent ORM:** Leverages Laravel's powerful Object-Relational Mapper for clean and safe database interactions.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 🛠️ Tech Stack
 
-## Laravel Sponsors
+- **Framework:** [Laravel 11](https://laravel.com/)
+- **Language:** [PHP](https://www.php.net/)
+- **Authentication:** Laravel Sanctum for JSON Web Tokens.
+- **Database:** [Eloquent ORM](https://laravel.com/docs/11.x/eloquent) with a relational database (e.g., MySQL).
+- **Dependency Manager:** [Composer](https://getcomposer.org/)
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+## 🚀 Getting Started
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+Follow these instructions to get the backend server up and running on your local machine.
 
-## Contributing
+### Prerequisites
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- **PHP:** Version 8.0 or higher
+- **Composer:** [PHP Dependency Manager](https://getcomposer.org/download/)
+- **Database:** A running instance of MySQL or another compatible database.
+- **Git:** [Version Control System](https://git-scm.com/)
 
-## Code of Conduct
+### Installation & Setup
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/AshanHimantha/myapplecare-backend.git
+    cd myapplecare-backend
+    ```
 
-## Security Vulnerabilities
+2.  **Install PHP dependencies:**
+    ```bash
+    composer install
+    ```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+3.  **Configure your environment:**
+    -   Copy the example environment file.
+        ```bash
+        cp .env.example .env
+        ```
+    -   Generate your unique application key and JWT secret.
+        ```bash
+        php artisan key:generate
+        php artisan jwt:secret
+        ```
 
-## License
+4.  **Set up the database:**
+    -   Create a new database for the project (e.g., `myapplecare_db`).
+    -   Open the newly created `.env` file and update the `DB_*` variables with your database credentials.
+        ```env
+        DB_CONNECTION=mysql
+        DB_HOST=127.0.0.1
+        DB_PORT=3306
+        DB_DATABASE=myapplecare_db
+        DB_USERNAME=your_db_user
+        DB_PASSWORD=your_db_password
+        ```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+5.  **Run database migrations:**
+    -   This command will create all the necessary tables (`users`, `posts`, etc.) in your database.
+        ```bash
+        php artisan migrate
+        ```
+
+6.  **Run the development server:**
+    ```bash
+    php artisan serve
+    ```
+    The API server should now be running, typically at `http://localhost:8000`.
+
+---
+
+## 📝 API Endpoints Overview
+
+All endpoints are prefixed with `/api`.
+
+| Method   | Endpoint                  | Description                               | Protected | Role      |
+| :------- | :------------------------ | :---------------------------------------- | :-------- | :-------- |
+| `POST`   | `/auth/register`          | Register a new user.                      | No        | -         |
+| `POST`   | `/auth/login`             | Authenticate a user and get a JWT.        | No        | -         |
+| `POST`   | `/auth/logout`            | Log out the authenticated user.           | Yes       | Any       |
+| `GET`    | `/auth/user-profile`      | Get the profile of the logged-in user.    | Yes       | Any       |
+| `GET`    | `/users`                  | Get a list of all users.                  | Yes       | Admin     |
+| `DELETE` | `/users/:id`              | Delete a user by ID.                      | Yes       | Admin     |
+| `POST`   | `/posts`                  | Create a new repair request (post).       | Yes       | Any       |
+| `GET`    | `/posts`                  | Get all repair requests.                  | Yes       | Any       |
+| `PUT`    | `/posts/:id`              | Update the status of a repair request.    | Yes       | Admin     |
+
+> **Note:** Endpoints marked as **Protected** require a valid Bearer Token in the `Authorization` header.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! If you have suggestions or want to improve the code, please feel free to fork the repo and create a pull request.
+
+1.  **Fork** the Project
+2.  Create your Feature Branch (`git checkout -b feature/NewFeature`)
+3.  Commit your Changes (`git commit -m 'Add some NewFeature'`)
+4.  Push to the Branch (`git push origin feature/NewFeature`)
+5.  Open a **Pull Request**
+
+---
