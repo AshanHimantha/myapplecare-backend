@@ -482,7 +482,7 @@ class TicketController extends BaseController
             
 
             $randomNumbers = rand(100, 999);
-            $message = "Dear Customer,\n\nGreat news! Your repair ticket has been completed.\nTicket ID: #{$ticketId}\n\nView your ticket details:\nhttps://myapplecare.1000dtechnology.com/ticket/{$ticketId}{$randomNumbers}\n\nYour device is ready for pickup.\n\nThank you for choosing {$sourceAddress}!\n\nBest regards,\n{$sourceAddress} Team";
+            $message = "Dear Customer,\n\nGreat news! Your repair ticket has been completed.\nTicket ID: #{$ticketId}\n\nView your ticket details:\nhttps://care.1000dtechnology.com/ticket/{$ticketId}{$randomNumbers}\n\nYour device is ready for pickup.\n\nThank you for choosing {$sourceAddress}!\n\nBest regards,\n{$sourceAddress} Team";
 
             $response = Http::get($apiUrl, [
                 'esmsqk' => $apiKey,
